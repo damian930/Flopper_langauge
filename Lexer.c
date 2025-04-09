@@ -66,6 +66,7 @@ Token lexer_create_string_token(Lexer* lexer) {
     if (lexer->text[lexer->current_idx] == '\"') {
         lexer_consume_char(lexer);
         return lexer_init_token(lexer, Token_Type_String);
+        
     }
     else 
         return lexer_init_token(lexer, Token_Type_Error_String);

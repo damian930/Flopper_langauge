@@ -32,6 +32,7 @@ typedef struct {
 
 } Token;
 
+
 Lexer lexer_init(const char* text);
 bool lexer_is_at_end(const Lexer* lexer);
 char lexer_peek_next(const Lexer* lexer);
