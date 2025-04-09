@@ -13,6 +13,8 @@ typedef struct {
 } Lexer;
 
 typedef enum  {
+    // Mentally isnert some other ASCII in here
+    
     Token_Type_String,
     Token_Type_Error_String,
     Token_Type_Integer,
