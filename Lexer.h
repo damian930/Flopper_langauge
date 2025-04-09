@@ -15,11 +15,12 @@ typedef struct {
 typedef enum  {
     // Mentally isnert some other ASCII in here
     
-    Token_Type_String,
+    Token_Type_String = 256,
     Token_Type_Error_String,
     Token_Type_Integer,
     Token_Type_Illegal,
-    Token_EOF
+    Token_Type_Whitespace,
+    Token_Type_EOF
 } Token_Type;
 
 typedef struct {
@@ -41,6 +42,7 @@ Token lexer_next_token(Lexer* lexer);
 Token lexer_init_token(Lexer* lexer, Token_Type type);
 Token lexer_create_string_token(Lexer* lexer);
 Token lexer_create_digit_token(Lexer* lexer);
+void lexer_skip_whitespaces(Lexer* lexer);
 
 Token token_init(Token_Type type, char* lexeme, int length);
 void token_print(Token* token);

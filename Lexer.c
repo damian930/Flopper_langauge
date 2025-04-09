@@ -47,6 +47,12 @@ Token lexer_next_token(Lexer* lexer) {
         case '(': return lexer_init_token(lexer, (int) '(');
         case ')': return lexer_init_token(lexer, (int) ')');
         default:
+            if (isspace(prev_ch)) {
+                lexer_skip_whitespaces(lexer);
+                
+                // TODO: dont return of whitespaces
+                return lexer_init_token(lexer, Token_Type_Whitespace);
+            }
             if (prev_ch == '\"')
                 return lexer_create_string_token(lexer);
             if (isdigit(prev_ch))
@@ -66,7 +72,7 @@ Token lexer_create_string_token(Lexer* lexer) {
     if (lexer->text[lexer->current_idx] == '\"') {
         lexer_consume_char(lexer);
         return lexer_init_token(lexer, Token_Type_String);
-        
+
     }
     else 
         return lexer_init_token(lexer, Token_Type_Error_String);
@@ -77,17 +83,18 @@ Token lexer_create_string_token(Lexer* lexer) {
 Token lexer_create_digit_token(Lexer* lexer) {
     // right now just to integers
 
-    while(isdigit(lexer_peek_next(lexer)) && !lexer_is_at_end(lexer)) {
+    while( isdigit(lexer_peek_next(lexer)) ) {
         lexer_consume_char(lexer);
     }
 
-    if (!lexer_is_at_end(lexer)) {
+    return lexer_init_token(lexer, Token_Type_Integer);
+}
+
+void lexer_skip_whitespaces(Lexer* lexer) {
+    while( isspace(lexer_peek_next(lexer)) ) {
         lexer_consume_char(lexer);
-        return lexer_init_token(lexer, Token_Type_Integer);
     }
 
-    return lexer_init_token(lexer, Token_EOF);
-    
 }
 
 inline
@@ -110,6 +117,7 @@ Token token_init(Token_Type type, char* lexeme, int length) {
 void token_print(Token* token) {
     printf("Token: \n");
     printf("\tlength: %d \n", token->length);
+    printf("\ttype:   %d \n", token->type);
     
     printf("\tlexeme: \"");
     for(int i=0; i<token->length; i++) {

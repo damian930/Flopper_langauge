@@ -2,7 +2,7 @@
 #include "Lexer.h"
 
 int main() {
-	char* text = " \"flopper\" 45";
+	char* text = " \"flopper\" 45 69 999";
 	Lexer lexer = lexer_init(text);
 
 	while (!lexer_is_at_end(&lexer)) {
