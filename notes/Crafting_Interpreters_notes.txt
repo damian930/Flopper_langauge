@@ -1,0 +1,29 @@
+Crafting Interpreter notes:
+
+===========================================================================================================
+
+Chapter 14 (Chunks of Bytecode):
+	-- bytecode (1-byte long operation codes)
+	-- chunks of operations
+	-- pointers are faster to (*) then to [idx]
+	-- immediate instructions
+	-- constant pool
+	-- Where to store line information for error printing
+	
+Chapter 15 (A Virtual Machine):
+	-- vm create byte code
+	-- types of responses vm might have after executing an operation
+	-- ip is the "instruction pointer" used in x86, x64
+	-- stack 
+	-- Extra:
+		We have a VM - a thing that executes bytecode.
+		We have to create the byte code.
+		We have chunks that store that byte code as chunks.
+		We have op_codes for the types of operations we support.
+		We have a stack that manipulates constants in memory based on the operations we provide.
+		VM is the entity that runs the code, so it is responsible for doing stuff with stack and such.
+		That is pretty much it.
+		
+
+	
+	
