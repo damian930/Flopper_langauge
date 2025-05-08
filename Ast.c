@@ -57,6 +57,17 @@ Expr* primary(Lexer* lexer) {
         return expr;
     }
 
+    if (token.type == (int) '(') {
+        Expr* grouped_expr = expression(lexer);
+        token = lexer_next_token(lexer);
+        if (token.type != (int) ')') {
+            printf("Was not able to parse a groupping, second ')' was missing.");
+            exit(1);
+        }
+
+        return grouped_expr;
+    }
+
     printf("Was not able to parse the primary expr. Not yet supported. \n");
     exit(1);
 
@@ -280,7 +291,7 @@ String expr_to_string(Expr* expr) {
                     String child_expr_str = expr_to_string(child_expr);
                     
                     string_add_c_string(&str, "(- ");
-                    string_add_string(&str, &child_expr);
+                    string_add_string(&str, &child_expr_str);
                     string_add_c_string(&str, ")");
                 
                     string_delete(&child_expr_str);

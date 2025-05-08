@@ -30,7 +30,7 @@ int main() {
 	// TODO: maybe use token types for Primary expression types
 
 	// char* text  = " \"flopper\" ";  // primary
-	 char* text  = " 1 + 2 * 3 == 7";   // unary
+	 char* text  = "- (- 1 + 2)";   // unary
 	 Lexer lexer = lexer_init(text);
 	 Expr* expr  = expression(&lexer);
 
@@ -39,29 +39,7 @@ int main() {
 	 string_delete(&expr_as_str);
 
 
-	/*{	
-		String str = string_init("flopper");
-		string_print(&str);
-
-		string_add_c_string(&str, " money");
-		string_print(&str);
-
-		String other = string_init(" peter peter peter peter peter");
-		string_add_string(&str, &other);
-		string_print(&str);
-		string_delete(&other);
-
-		string_print(&other);
-
-		other = string_init("other");
-		string_print(&other);
-		string_delete(&other);
-
-		string_delete(&str);
-
-		string_print(&str);
-		string_print(&other);
-	}*/
+	
 
 
 	return 0;
