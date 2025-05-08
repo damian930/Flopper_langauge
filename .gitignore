@@ -2,3 +2,5 @@
 x64
 flopper_lang.*
 tem
+.vscode
+.gitignore
