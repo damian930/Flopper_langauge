@@ -23,6 +23,9 @@ typedef enum {
     Token_Type_True,
     Token_Type_False,
 
+    Token_Type_And,
+    Token_Type_Or,
+
     Token_Type_Illegal,
     Token_Type_EOF
 } Token_Type;

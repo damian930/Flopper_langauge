@@ -91,14 +91,12 @@ Token lexer_next_token(Lexer *lexer) {
 
     case '!':
     {
-        if (lexer_peek_next_char(lexer) == '=')
-        {
+        if (lexer_peek_next_char(lexer) == '=') {
             lexer_consume_char(lexer);
             return lexer_init_token(lexer, Token_Type_Not_Equals);
         }
-        else
-        {
-            return lexer_init_token(lexer, Token_Type_Illegal);
+        else {
+            return lexer_init_token(lexer, (int) '!');
         }
     }
     case '=':
@@ -135,6 +133,27 @@ Token lexer_next_token(Lexer *lexer) {
         }
         else {
             printf("Was not able to recognise \"false\" after 'f' \n");
+            exit(1);
+        }
+    }
+    case 'a': {
+        if (
+            lexer_consume_char(lexer) == 'n' &&
+            lexer_consume_char(lexer) == 'd'
+        ) {
+            return lexer_init_token(lexer, Token_Type_And);
+        }
+        else {
+            printf("Was not able to recognise \"and\" after 'a' \n");
+            exit(1);
+        }
+    }
+    case 'o': {
+        if (lexer_consume_char(lexer) == 'r') {
+            return lexer_init_token(lexer, Token_Type_Or);
+        }
+        else {
+            printf("Was not able to recognise \"or\" after 'o' \n");
             exit(1);
         }
     }

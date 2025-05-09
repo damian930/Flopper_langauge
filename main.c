@@ -16,7 +16,7 @@ int main() {
 			//                | primary ;
 			// primary    :: INTEGER | STRING | "(" expression ")" ;
 
-	char* text    = " 1 + 2 + 3 + 4 + 5";
+	char* text    = " !false ";
 	// Lexer lexer   = lexer_init(text);
 	// Token token   = lexer_next_token(&lexer);
 	// token_print(&token);

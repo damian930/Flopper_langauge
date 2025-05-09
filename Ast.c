@@ -7,14 +7,15 @@
 
 // == Grammar
 //          Current grammar
-// expression :: equality ;
-// equality   :: comparison ( ( "!=" | "==" ) comparison )* ;
-// comparison :: term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
-// term       :: factor ( ( "-" | "+" ) factor )* ;
-// factor     :: unary ( ( "/" | "*" ) unary )* ;
+// expression :: equality 
+// equality   :: and_or ( ( "!=" | "==" ) and_or )* 
+// and_or     :: comparison ( ( "and" | "or" ) comparison)* 
+// comparison :: term ( ( ">" | ">=" | "<" | "<=" ) term )* 
+// term       :: factor ( ( "-" | "+" ) factor )* 
+// factor     :: unary ( ( "/" | "*" ) unary )* 
 // unary      :: ( "!" | "-" ) unary
-//                | primary ;
-// primary    :: INTEGER | STRING | "(" expression ")" ;
+//                | primary 
+// primary    :: INTEGER | STRING | "(" expression ")" 
 
 Expr* primary(Lexer* lexer) {
     Token token = lexer_next_token(lexer);
@@ -89,6 +90,26 @@ Expr* primary(Lexer* lexer) {
 
 Expr* unary(Lexer* lexer) {
     if (lexer_peek_next_token(lexer).type == (int) '-') {
+        Token operator = lexer_next_token(lexer);
+        Expr* right    = unary(lexer);
+
+        Expr* expr = malloc(sizeof(Expr));
+        if (expr == NULL) {
+            printf("Was not able to initialise expr, ran out of memory. \n");
+            exit(1);
+        }
+
+        *expr = (Expr) {
+            .type         = Expr_type_unary, 
+            .union_.unary = {
+                .operator = operator,
+                .right    = right,
+            },
+        };
+        return expr;
+    }
+
+    if (lexer_peek_next_token(lexer).type == (int) '!') {
         Token operator = lexer_next_token(lexer);
         Expr* right    = unary(lexer);
 
@@ -215,8 +236,44 @@ Expr* comparison(Lexer* lexer) {
     return left;
 }
 
-Expr* equality(Lexer* lexer) {
+Expr* and_or(Lexer* lexer) {
     Expr* left = comparison(lexer);
+
+    while (true) {
+        Token next_token = lexer_peek_next_token(lexer);
+        if (   
+            next_token.type == Token_Type_And ||
+            next_token.type == Token_Type_Or
+        ) {
+            Token operator = lexer_next_token(lexer);
+            Expr* right    = comparison(lexer);
+
+            Expr* new_expr = malloc(sizeof(Expr));
+            if (new_expr == NULL) {
+                printf("Was not able to allocated expr on heap. \n");
+                exit(1);
+            }
+
+            *new_expr = (Expr) {
+                .type = Expr_type_binary,
+                .union_.binary = {
+                    .operator = operator,
+                    .left     = left,
+                    .right    = right,
+                },
+            };
+            left = new_expr;
+        }
+        else {
+            break;
+        }
+    }
+
+    return left;
+}
+
+Expr* equality(Lexer* lexer) {
+    Expr* left = and_or(lexer);
 
     while (true) {
         Token next_token = lexer_peek_next_token(lexer);
@@ -224,7 +281,7 @@ Expr* equality(Lexer* lexer) {
             || next_token.type == Token_Type_Not_Equals 
         ) {
             Token operator = lexer_next_token(lexer);
-            Expr* right    = comparison(lexer);
+            Expr* right    = and_or(lexer);
 
             Expr* new_expr = malloc(sizeof(Expr));
             if (new_expr == NULL) {
@@ -318,15 +375,27 @@ String expr_to_string(Expr* expr) {
 
         case Expr_type_unary: {
             switch (expr->union_.unary.operator.type) {
-                case (int) '-': {
+                case (int) '-':
+                case (int) '!': {
                     Expr* child_expr = expr->union_.unary.right;
                     String child_expr_str = expr_to_string(child_expr);
                     
-                    string_add_c_string(&str, "(- ");
+                    // Copying the operator lexeme 
+                    char* operator_lexeme    = expr->union_.unary.operator.lexeme;
+                    int operator_lexeme_size = expr->union_.unary.operator.length;
+                    char* operator_str       = malloc(sizeof(char) * operator_lexeme_size + 1);
+                    for (int i=0; i<operator_lexeme_size; ++i) {
+                        operator_str[i] = operator_lexeme[i];
+                    }
+                    operator_str[operator_lexeme_size] = '\0';
+
+                    string_add_c_string(&str, "("); 
+                    string_add_c_string(&str, operator_str); 
                     string_add_string(&str, &child_expr_str);
                     string_add_c_string(&str, ")");
                 
                     string_delete(&child_expr_str);
+                    free(operator_str);
                     break;
                 }
 
@@ -338,6 +407,7 @@ String expr_to_string(Expr* expr) {
 
                     break;
                 }
+                
             }
 
             break;
@@ -363,6 +433,8 @@ String expr_to_string(Expr* expr) {
                 case Token_Type_Less_Or_Equals: { operator = "<= "; break; }
                 case Token_Type_Equals_Equals: { operator = "== "; break; }
                 case Token_Type_Not_Equals: { operator = "!= "; break; }
+                case Token_Type_And: { operator = "and "; break; }
+                case Token_Type_Or: { operator = "or "; break; }
 
                 default: {
                     printf("Was not able to create a string for a binary expr,");
@@ -438,15 +510,71 @@ Evaluation evalueate_expression(Expr* expr) {
         }
 
         case Expr_type_unary: {
-            // TODO:
+            Token_Type operator = expr->union_.unary.operator.type;
+            Evaluation right    = evalueate_expression(expr->union_.unary.right);
+
+            switch (operator) {
+                case (int) '!': {
+                    switch (right.type) {
+                        case Evaluation_type_boolean: {
+                            return (Evaluation) {
+                                .type           = Evaluation_type_boolean,
+                                .union_.boolean = ! right.union_.boolean, 
+                            };
+                        }
+
+                        default: {
+                            printf("Wasn't able to evaluate unary expr, it is not supported. \n");
+                            printf("Operator token: ");
+                            token_print(&expr->union_.binary.operator);
+                            exit(1);
+                        }
+                    }
+                }
+
+                case (int) '-': {
+                    switch (right.type) {
+                        case Evaluation_type_integer: {
+                            return (Evaluation) {
+                                .type           = Evaluation_type_integer,
+                                .union_.integer = - right.union_.integer, 
+                            };
+                        }
+
+                        default: {
+                            printf("Wasn't able to evaluate unary expr, it is not supported. \n");
+                            printf("Operator token: ");
+                            token_print(&expr->union_.binary.operator);
+                            exit(1);
+                        }
+                    }
+                }
+            }
+
+            switch (right.type) {
+                case Evaluation_type_integer: {
+                    return (Evaluation) {
+                        .type           = Evaluation_type_integer,
+                        .union_.integer = - right.union_.integer, 
+                    };
+                }
+
+                default: {
+                    printf("Wasn't able to evaluate unary expr, it is not supported. \n");
+                    printf("Operator token: ");
+                    token_print(&expr->union_.binary.operator);
+                    exit(1);
+                }
+            }
         }
 
         case Expr_type_binary: {
-            switch (expr->union_.binary.operator.type) {
-                case (int) '+': {
-                    Evaluation left  = evalueate_expression(expr->union_.binary.left);
-                    Evaluation right = evalueate_expression(expr->union_.binary.right);
+            Token_Type operator =  expr->union_.binary.operator.type;
+            Evaluation left     = evalueate_expression(expr->union_.binary.left);
+            Evaluation right    = evalueate_expression(expr->union_.binary.right);
 
+            switch (operator) {
+                case (int) '+': {
                     if (
                         left.type  == Evaluation_type_integer &&
                         right.type == Evaluation_type_integer
@@ -462,20 +590,93 @@ Evaluation evalueate_expression(Expr* expr) {
                     printf("Error, unsupported addition for types. \n");
                     exit(1);
 
-                    
                     break;
                 }
-
                 case (int) '-': {
-                    
-                }
+                    if (
+                        left.type  == Evaluation_type_integer &&
+                        right.type == Evaluation_type_integer
+                    ) {
+                        
+                        return (Evaluation) {
+                            .type           = Evaluation_type_integer,
+                            .union_.integer = left.union_.integer - right.union_.integer, 
+                        };
+                    }
 
+                    
+                    printf("Error, unsupported substaction for types. \n");
+                    exit(1);
+
+                    break;
+                }
                 case (int) '*': {
-                    
-                }
+                    if (
+                        left.type  == Evaluation_type_integer &&
+                        right.type == Evaluation_type_integer
+                    ) {
+                        
+                        return (Evaluation) {
+                            .type           = Evaluation_type_integer,
+                            .union_.integer = left.union_.integer * right.union_.integer, 
+                        };
+                    }
 
+                    printf("Error, unsupported multiplication for types. \n");
+                    exit(1);
+
+                    break;
+                }
                 case (int) '/': {
-                    
+                    if (
+                        left.type  == Evaluation_type_integer &&
+                        right.type == Evaluation_type_integer
+                    ) {
+                        
+                        return (Evaluation) {
+                            .type           = Evaluation_type_integer,
+                            .union_.integer = (int) (left.union_.integer / right.union_.integer), 
+                        };
+                    }
+
+                    printf("Error, unsupported division for types. \n");
+                    exit(1);
+
+                    break;
+                }
+                case Token_Type_And: {
+                    if (
+                        left.type  == Evaluation_type_boolean &&
+                        right.type == Evaluation_type_boolean
+                    ) {
+                        
+                        return (Evaluation) {
+                            .type           = Evaluation_type_boolean,
+                            .union_.boolean = left.union_.boolean && right.union_.boolean,  
+                        };
+                    }
+
+                    printf("Error, unsupported 'and' for types. \n");
+                    exit(1);
+
+                    break;
+                }
+                case Token_Type_Or: {
+                    if (
+                        left.type  == Evaluation_type_boolean &&
+                        right.type == Evaluation_type_boolean
+                    ) {
+                        
+                        return (Evaluation) {
+                            .type           = Evaluation_type_boolean,
+                            .union_.boolean = left.union_.boolean || right.union_.boolean,  
+                        };
+                    }
+
+                    printf("Error, unsupported 'or' for types. \n");
+                    exit(1);
+
+                    break;
                 }
 
                 default: {
