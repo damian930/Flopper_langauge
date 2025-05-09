@@ -3,12 +3,23 @@
 #include "Lexer.h"
 #include "my_String.h"
 
-typedef enum Expr_type    Expr_type;
+typedef enum Expr_type Expr_type;
 
 typedef struct Primary Primary;
 typedef struct Unary   Unary;
 typedef struct Binary  Binary;
 typedef struct Expr    Expr;
+
+// == Grammar
+//          Current grammar
+// expression :: equality ;
+// equality   :: comparison ( ( "!=" | "==" ) comparison )* ;
+// comparison :: term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+// term       :: factor ( ( "-" | "+" ) factor )* ;
+// factor     :: unary ( ( "/" | "*" ) unary )* ;
+// unary      :: ( "!" | "-" ) unary
+//                | primary ;
+// primary    :: INTEGER | STRING | "(" expression ")" ;
 
 enum Expr_type {
     Expr_type_primary,
@@ -20,7 +31,8 @@ struct Primary {
     Token_Type type;
     union {
         int integer;
-        char* string;
+        bool boolean;
+        // char* string;
     } union_;
 };
 
@@ -52,33 +64,38 @@ Expr* comparison(Lexer* lexer);
 Expr* equality(Lexer* lexer);
 Expr* expression(Lexer* lexer);
 
+// void epxr_delete(Expr* expr);
+
+// For debugging
 String expr_to_string(Expr* expr);
 
 
-/*{	
-	String str = string_init("flopper");
-	string_print(&str);
 
-	string_add_c_string(&str, " money");
-	string_print(&str);
+typedef struct {
+    Lexer lexer;
+    Expr* ast;
 
-	String other = string_init(" peter peter peter peter peter");
-	string_add_string(&str, &other);
-	string_print(&str);
-	string_delete(&other);
+    bool had_error;
+} Parser;
 
-	string_print(&other);
+Parser parser_init(const char* text);
 
-	other = string_init("other");
-	string_print(&other);
-	string_delete(&other);
-
-	string_delete(&str);
-
-	string_print(&str);
-	string_print(&other);
-}*/
+void parser_parse(Parser* parser);
 
 
+typedef enum {
+    Evaluation_type_integer,
+    Evaluation_type_boolean,
+} Evaluation_type;
 
+typedef struct {
+    Evaluation_type type;
+    union {
+        int  integer;
+        bool boolean;
+    } union_;
+} Evaluation;
+
+void parser_evaluate_expr(Parser* parser);
+Evaluation evalueate_expression(Expr* expr);
 

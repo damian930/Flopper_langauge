@@ -4,14 +4,6 @@
 #include "my_String.h"
 
 int main() {
-	// char* text  = " 12.23 \"flopper\" 45 69 999";
-	// Lexer lexer = lexer_init(text);
-
-	// while (!lexer_is_at_end(&lexer)) {
-	// 	Token token = lexer_next_token(&lexer);
-	// 	token_print(&token);
-	// }
-
 	// =====================================================
 			// == Grammar
 			//          Current grammar
@@ -24,22 +16,25 @@ int main() {
 			//                | primary ;
 			// primary    :: INTEGER | STRING | "(" expression ")" ;
 
-
-
-	// TODO: better debugging for expression
-	// TODO: maybe use token types for Primary expression types
-
-	// char* text  = " \"flopper\" ";  // primary
-	 char* text  = "- (- 1 + 2)";   // unary
-	 Lexer lexer = lexer_init(text);
-	 Expr* expr  = expression(&lexer);
-
-	 String expr_as_str = expr_to_string(expr);
-	 string_print(&expr_as_str);
-	 string_delete(&expr_as_str);
-
-
+	char* text    = " 1 + 2 + 3 + 4 + 5";
+	// Lexer lexer   = lexer_init(text);
+	// Token token   = lexer_next_token(&lexer);
+	// token_print(&token);
 	
+	Parser parser = parser_init(text);
+	parser_parse(&parser);
+
+	String expr_as_str = expr_to_string(parser.ast);
+	string_print(&expr_as_str);
+
+	Evaluation eval = evalueate_expression(parser.ast);
+	printf("Eval.type: %d \n", eval.type);
+	printf("Eval.int : %d \n", eval.union_.integer);
+
+
+	// epxr_delete(parser.ast);
+	// parser.ast = NULL;
+	// string_print(&expr_as_str);
 
 
 	return 0;

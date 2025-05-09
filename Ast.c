@@ -1,7 +1,9 @@
 #include <stdlib.h>
+#include "stdio.h"
 #include "Ast.h"
 #include "Lexer.h"
 #include "my_String.h"
+
 
 // == Grammar
 //          Current grammar
@@ -17,71 +19,78 @@
 Expr* primary(Lexer* lexer) {
     Token token = lexer_next_token(lexer);
     
+    if (token.type == (int) '(') {
+        Expr* grouped_expr = expression(lexer);
+        lexer_consume_token__exits(
+            lexer, 
+            (int) ')', 
+            "Was not able to parse a groupping, second ')' was missing."
+        );
+        return grouped_expr;
+    }
+    
+    Primary* primary = NULL;
+
     if (token.type == Token_Type_Integer) {
         int int_value = atoi(token.lexeme);
-        Primary primary = {
+        primary = &(Primary) {
             .type = Token_Type_Integer,
             .union_.integer = int_value,
         };
-
-        Expr* expr = malloc(sizeof(Expr));
-        if (expr == NULL) {
-            printf("Was not able to initialise expr, ran out of memory. \n");
-            exit(1);
-        }
-
-        *expr = (Expr) {
-            .type = Expr_type_primary,
-            .union_.primary = primary,
-        };
-        return expr;
     }
 
-    if (token.type == Token_Type_String) {
-        Primary primary = {
-            .type = Token_Type_String,
-            .union_.string = token.lexeme,
- 
+    if (token.type == Token_Type_True) {
+        primary = &(Primary) {
+            .type = Token_Type_True,
+            .union_.boolean = true,
         };
-
-        // TODO: test for no memory
-        Expr* expr = malloc(sizeof(Expr));
-        if (expr == NULL) {
-            printf("Was not able to allocate memory for an Expession. \n");
-            exit(1);
-        }
-        *expr = (Expr) {
-            .type = Expr_type_primary,
-            .union_.primary = primary,
-        };
-        return expr;
     }
 
-    if (token.type == (int) '(') {
-        Expr* grouped_expr = expression(lexer);
-        token = lexer_next_token(lexer);
-        if (token.type != (int) ')') {
-            printf("Was not able to parse a groupping, second ')' was missing.");
-            exit(1);
-        }
-
-        return grouped_expr;
+    if (token.type == Token_Type_False) {
+        primary = &(Primary) {
+            .type = Token_Type_True,
+            .union_.boolean = false,
+        };
     }
 
-    printf("Was not able to parse the primary expr. Not yet supported. \n");
-    exit(1);
+    // if (token.type == Token_Type_Double) {
+    //     char *endptr;
+    //     double double_value = strtod(token.lexeme, &endptr);
+    //     primary = &(Primary) {
+    //         .type = Token_Type_Double,
+    //         .union_.double_ = double_value,
+    //     };
+    // }
 
+    // if (token.type == Token_Type_String) {
+    //     primary = &(Primary) {
+    //         .type = Token_Type_String,
+    //         .union_.string = token.lexeme,
+    //     };
+    // }
 
-    // error here
+    if (primary == NULL) {
+        printf("Was not able to parse the primary expr. Not yet supported. \n");
+        exit(1);
+    }
 
-    // grouping here
+    Expr* expr = malloc(sizeof(Expr));
+    if (expr == NULL) {
+        printf("Was not able to initialise expr, ran out of memory. \n");
+        exit(1);
+    }
+
+    *expr = (Expr) {
+        .type = Expr_type_primary,
+        .union_.primary = *primary,
+    };
+    return expr;
 }
 
 Expr* unary(Lexer* lexer) {
     if (lexer_peek_next_token(lexer).type == (int) '-') {
         Token operator = lexer_next_token(lexer);
         Expr* right    = unary(lexer);
-        Unary unary    = {operator, right};
 
         Expr* expr = malloc(sizeof(Expr));
         if (expr == NULL) {
@@ -91,7 +100,10 @@ Expr* unary(Lexer* lexer) {
 
         *expr = (Expr) {
             .type         = Expr_type_unary, 
-            .union_.unary = unary,
+            .union_.unary = {
+                .operator = operator,
+                .right    = right,
+            },
         };
         return expr;
     }
@@ -101,7 +113,6 @@ Expr* unary(Lexer* lexer) {
 
 Expr* factor(Lexer* lexer) {
     Expr* left = unary(lexer);
-    Expr* expr = NULL;
 
     while (true) {
         Token next_token = lexer_peek_next_token(lexer);
@@ -123,7 +134,7 @@ Expr* factor(Lexer* lexer) {
                     .right    = right,
                 },
             };
-            expr = new_expr;
+            left = new_expr;
         }
         else {
             break;
@@ -131,12 +142,11 @@ Expr* factor(Lexer* lexer) {
 
     }   
 
-    return (expr == NULL ? left : expr);
+    return left;
 }
 
 Expr* term(Lexer* lexer) {
     Expr* left = factor(lexer);
-    Expr* expr = NULL;
 
     while (true) {
         Token next_token = lexer_peek_next_token(lexer);
@@ -158,19 +168,18 @@ Expr* term(Lexer* lexer) {
                     .right    = right,
                 },
             };
-            expr = new_expr;
+            left = new_expr;
         }
         else {
             break;
         }
     }
 
-    return (expr == NULL ? left : expr);
+    return left;
 }
 
 Expr* comparison(Lexer* lexer) {
     Expr* left = term(lexer);
-    Expr* expr = NULL;
 
     while (true) {
         Token next_token = lexer_peek_next_token(lexer);
@@ -196,19 +205,18 @@ Expr* comparison(Lexer* lexer) {
                     .right    = right,
                 },
             };
-            expr = new_expr;
+            left = new_expr;
         }
         else {
             break;
         }
     }
 
-    return (expr == NULL ? left : expr);
+    return left;
 }
 
 Expr* equality(Lexer* lexer) {
     Expr* left = comparison(lexer);
-    Expr* expr = NULL;
 
     while (true) {
         Token next_token = lexer_peek_next_token(lexer);
@@ -232,19 +240,22 @@ Expr* equality(Lexer* lexer) {
                     .right    = right,
                 },
             };
-            expr = new_expr;
+            left = new_expr;
         }
         else {
             break;
         }
     }
 
-    return (expr == NULL ? left : expr);
+    return left;
 }
 
 Expr* expression(Lexer* lexer) {
     return equality(lexer);
 }
+
+
+// TODO: delete the dynamic AST tree
 
 
 String expr_to_string(Expr* expr) {
@@ -264,13 +275,34 @@ String expr_to_string(Expr* expr) {
                     break;
                 }
 
-                case Token_Type_String: {
-                    string_add_c_string(&str, "(string -> ");
-                    string_add_c_string(&str, expr->union_.primary.union_.string);
-                    string_add_c_string(&str, ")");
-
+                case Token_Type_True: 
+                case Token_Type_False: {
+                    bool bool_value   = expr->union_.primary.union_.boolean;
+                    char* bool_as_str = (bool_value == true ? "true" : "false"); 
+                    string_add_c_string(&str, "(bool -> ");
+                    string_add_c_string(&str, bool_as_str);
+                    string_add_c_string(&str, ")"); 
+                    
                     break;
                 }
+
+                // case Token_Type_String: {
+                //     string_add_c_string(&str, "(string -> ");
+                //     string_add_c_string(&str, expr->union_.primary.union_.string);
+                //     string_add_c_string(&str, ")");
+
+                //     break;
+                // }
+
+                // case Token_Type_Double: {
+                //     char double_as_str[30]; 
+                //     sprintf_s(double_as_str, 30, "%.3lf", expr->union_.primary.union_.double_);
+                //     string_add_c_string(&str, "(double -> ");
+                //     string_add_c_string(&str, double_as_str);
+                //     string_add_c_string(&str, ")");
+                    
+                //     break;
+                // }
 
                 default: {
                     printf("Was not able to create a string for a primary expr,");
@@ -367,9 +399,100 @@ String expr_to_string(Expr* expr) {
 
 
 
+Parser parser_init(const char* text) {
+    Lexer lexer    = lexer_init(text);
+    Expr* ast      = NULL;
+    bool had_error = false; 
+    return (Parser) {lexer, ast, had_error};
+}
+
+void parser_parse(Parser* parser) {
+    parser->ast = expression(&parser->lexer);
+}
 
 
+void parser_evaluate_expr(Parser* parser) {
+    Expr* expr      = parser->ast;
+    Evaluation eval = evalueate_expression(expr);
+}
 
+Evaluation evalueate_expression(Expr* expr) {
+    switch (expr->type) {
+        case Expr_type_primary: {
+            Token_Type primary_type = expr->union_.primary.type;
+            
+        if (primary_type == Token_Type_True || primary_type == Token_Type_False) {
+            return (Evaluation) {
+                .type           = Evaluation_type_boolean,
+                .union_.boolean = expr->union_.primary.union_.boolean,
+            };
+        }
+        
+        if (primary_type == Token_Type_Integer) {
+            return (Evaluation) {
+                .type           = Evaluation_type_integer,
+                .union_.integer = expr->union_.primary.union_.integer,
+            };
+        }
+
+        }
+
+        case Expr_type_unary: {
+            // TODO:
+        }
+
+        case Expr_type_binary: {
+            switch (expr->union_.binary.operator.type) {
+                case (int) '+': {
+                    Evaluation left  = evalueate_expression(expr->union_.binary.left);
+                    Evaluation right = evalueate_expression(expr->union_.binary.right);
+
+                    if (
+                        left.type  == Evaluation_type_integer &&
+                        right.type == Evaluation_type_integer
+                    ) {
+                        
+                        return (Evaluation) {
+                            .type           = Evaluation_type_integer,
+                            .union_.integer = left.union_.integer + right.union_.integer, 
+                        };
+                    }
+
+                    
+                    printf("Error, unsupported addition for types. \n");
+                    exit(1);
+
+                    
+                    break;
+                }
+
+                case (int) '-': {
+                    
+                }
+
+                case (int) '*': {
+                    
+                }
+
+                case (int) '/': {
+                    
+                }
+
+                default: {
+                    printf("Wasn't able to evaluate binary expr, it is not supported. \n");
+                    printf("Operator token: ");
+                    token_print(&expr->union_.binary.operator);
+                    exit(1);
+                }
+
+                // TODO: other bin operators
+            }
+
+
+        }
+
+    }
+}
 
 
 
