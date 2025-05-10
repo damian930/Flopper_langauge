@@ -2,7 +2,7 @@
 #include "Ast.h"
 #include "Lexer.h"
 #include "my_String.h"
-#include "Array_Stmt.h"  // This include is now safe
+#include "Array.h"
 
 // ==================================
 typedef enum Expr_type Expr_type;
@@ -112,7 +112,7 @@ struct Evaluation {
 
 struct Parser {
     Lexer lexer;
-    Array_stmt stmt_arr;
+    Array stmt_arr;
     bool  had_error;
 };
 

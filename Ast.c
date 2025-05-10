@@ -3,7 +3,7 @@
 #include "Ast.h"
 #include "Lexer.h"
 #include "my_String.h"
-#include "Array_Stmt.h"
+#include "Array.h"
 
 // Expr grammar below
 
@@ -501,16 +501,16 @@ String stmt_to_string(Stmt* stmt) {
 // Parser below
 
 Parser parser_init(const char* text) {
-    Lexer lexer         = lexer_init(text);
-    Array_stmt stmt_arr = array_stmt_init(); 
-    bool had_error      = false; 
+    Lexer lexer    = lexer_init(text);
+    Array stmt_arr = array_init(Array_type_stmt); 
+    bool had_error = false; 
     return (Parser) {lexer, stmt_arr, had_error};
 }
 
 void parser_parse(Parser* parser) {
     while(!lexer_is_at_end(&parser->lexer)) {
         Stmt stmt = statement(&parser->lexer);
-        array_stmt_add(&parser->stmt_arr, stmt);
+        array_add(&parser->stmt_arr, (void*) &stmt, Array_type_stmt);
         lexer_skip_whitespaces(&parser->lexer);
 
     }
@@ -518,7 +518,7 @@ void parser_parse(Parser* parser) {
     // TODO: Delete expr inside the Stmt here
 
     for (int i=0; i<parser->stmt_arr.length; ++i) {
-        Expr* expr         = parser->stmt_arr.arr[i].expr;
+        Expr* expr         = ((Stmt*) parser->stmt_arr.arr)[i].expr;
         String expr_as_str = expr_to_string(expr);
         string_print(&expr_as_str);
     }
@@ -526,7 +526,7 @@ void parser_parse(Parser* parser) {
     printf("\n\n");
 
     for (int i=0; i<parser->stmt_arr.length; ++i) {
-        Stmt stmt = parser->stmt_arr.arr[i];
+        Stmt stmt = ((Stmt*) parser->stmt_arr.arr)[i];
         parser_execute_statement(&stmt);
     }
 }

@@ -3,6 +3,7 @@
 #include "Ast.h"
 #include "my_String.h"
 #include "Array_Stmt.h"
+#include "Array.h"
 
 String read_file(const char* file_name) {
 	String str = string_init("");
@@ -24,11 +25,8 @@ String read_file(const char* file_name) {
 
 int main() {
 	String code = read_file("code_input.txt");
-	
-	Parser parser = parser_init(code.str);
-	parser_parse(&parser);
 
-
-
+	 Parser parser = parser_init(code.str);
+	 parser_parse(&parser);
 	return 0;
 }

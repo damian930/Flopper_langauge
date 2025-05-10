@@ -44,6 +44,27 @@ unary      :: ( "!" | "-" ) unary
 primary    :: INTEGER | BOOLEAN | "(" expression ")" 
 =============================================================
 
+=============================================================
+== Grammar 0.3
+
+program         :: declaration*
+declaration     :: var_declaration | statement
+var_declaration :: IDENTIFIER: IDENTIFIER (= expression)? ";"   <---                            
+statement       :: expression_stmt | print_stmt             
+expression_stmt :: expression ";"                          
+print_stmt      :: "print" expression ";"                   
+
+expression :: equality 
+equality   :: and_or ( ( "!=" | "==" ) and_or )*                
+and_or     :: comparison ( ( "and" | "or" )  comparison )*  
+comparison :: term ( ( ">" | ">=" | "<" | "<=" ) term )* 
+term       :: factor ( ( "-" | "+" ) factor )* 
+factor     :: unary ( ( "/" | "*" ) unary )* 
+unary      :: ( "!" | "-" ) unary
+              | primary 
+primary    :: INTEGER | BOOLEAN | "(" expression ")" 
+=============================================================
+
 
 
 
