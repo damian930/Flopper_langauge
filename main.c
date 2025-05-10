@@ -4,6 +4,7 @@
 #include "my_String.h"
 #include "Array_Stmt.h"
 #include "Array.h"
+#include "Langauge.h"
 
 String read_file(const char* file_name) {
 	String str = string_init("");
@@ -24,9 +25,23 @@ String read_file(const char* file_name) {
 }
 
 int main() {
-	String code = read_file("code_input.txt");
+	// String code = read_file("code_input.txt");
 
-	 Parser parser = parser_init(code.str);
-	 parser_parse(&parser);
+	// Parser parser = parser_init(code.str);
+	// parser_parse(&parser);
+
+	// Testing variables map
+	Map_variables map_variables = map_variables_init();
+	map_variables_add(
+		&map_variables, 
+		string_init("Flopper"), 
+		(Evaluation) { .type = Evaluation_type_integer, .union_.boolean = true } 
+	);
+	map_variables_delete(&map_variables);
+
+
+	printf(" --> DONE <-- \n");
+	
 	return 0;
+
 }

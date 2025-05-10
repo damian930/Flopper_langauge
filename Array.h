@@ -8,6 +8,8 @@ typedef struct Array      Array;
 enum Array_type {
     Array_type_int,
     Array_type_stmt,
+    Array_type_tuple__hash_variable,
+    Array_type_variable,
 };
 int array_get_size_of_arr_type(Array_type type);
 

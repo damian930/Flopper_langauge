@@ -1,10 +1,14 @@
 #include "Array.h"
 #include "Ast.h"
+#include "Langauge.h"
 
 int array_get_size_of_arr_type(Array_type type) {
     switch (type) {
-        case Array_type_int : { return sizeof(int);  }
-        case Array_type_stmt: { return sizeof(Stmt); }
+        case Array_type_int :     { return sizeof(int);      }
+        case Array_type_stmt:     { return sizeof(Stmt);     }
+        case Array_type_variable: { return sizeof(Variable); }
+        
+        case Array_type_tuple__hash_variable: { return sizeof(Tuple__hash_variables); }
 
         default: {
             printf("Was not able to calculate the size of Array_type. Unsupported type. \n");
@@ -70,6 +74,22 @@ void array_add(Array* arr, void* new_value, Array_type value_type) {
             Stmt* stmt_arr        = (Stmt*) arr->arr;
             stmt_arr[arr->length] = *((Stmt*) new_value);
             arr->length           += 1;
+
+            break;
+        }
+
+        case Array_type_variable: {
+            Variable* vars_arr    = (Variable*) arr->arr;
+            vars_arr[arr->length] = *((Variable*) new_value);
+            arr->length           += 1;
+
+            break;
+        }
+
+        case Array_type_tuple__hash_variable: {
+            Tuple__hash_variables* tuples_arr = (Tuple__hash_variables*) arr->arr;
+            tuples_arr[arr->length]           = *((Tuple__hash_variables*) new_value);
+            arr->length                       += 1;
 
             break;
         }
