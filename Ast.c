@@ -3,19 +3,9 @@
 #include "Ast.h"
 #include "Lexer.h"
 #include "my_String.h"
+#include "Array_Stmt.h"
 
-
-// == Grammar
-//          Current grammar
-// expression :: equality 
-// equality   :: and_or ( ( "!=" | "==" ) and_or )* 
-// and_or     :: comparison ( ( "and" | "or" ) comparison)* 
-// comparison :: term ( ( ">" | ">=" | "<" | "<=" ) term )* 
-// term       :: factor ( ( "-" | "+" ) factor )* 
-// factor     :: unary ( ( "/" | "*" ) unary )* 
-// unary      :: ( "!" | "-" ) unary
-//                | primary 
-// primary    :: INTEGER | STRING | "(" expression ")" 
+// Expr grammar below
 
 Expr* primary(Lexer* lexer) {
     Token token = lexer_next_token(lexer);
@@ -312,8 +302,42 @@ Expr* expression(Lexer* lexer) {
 }
 
 
-// TODO: delete the dynamic AST tree
+// Stmt grammar below
 
+Stmt print_stmt(Lexer* lexer) {
+    // "print" was alredy consumed by the caller
+    Expr* expr = expression(lexer);
+    lexer_consume_token__exits(lexer, (int) ';', "Invalid syntax, was expecting ';' at the end of expression");
+    return (Stmt) {
+        .type = Stmt_type_print,
+        .expr = expr,
+    };
+}
+
+Stmt expression_stmt(Lexer* lexer) {
+    Expr* expr = expression(lexer);
+    lexer_consume_token__exits(lexer, (int) ';', "Invalid syntax, was expecting ';' at the end of expression");
+    return (Stmt) {
+        .type = Stmt_type_expr,
+        .expr = expr,
+    };
+}
+
+Stmt statement(Lexer* lexer) {
+    if (lexer_peek_next_token(lexer).type == Token_Type_Print) {
+        lexer_next_token(lexer);
+        return print_stmt(lexer);
+    }
+
+    return expression_stmt(lexer);
+}
+
+Stmt program(Lexer* lexer) {
+    return statement(lexer);
+}
+
+
+// TODO: delete the dynamic AST tree
 
 String expr_to_string(Expr* expr) {
     String str = string_init("");
@@ -469,24 +493,42 @@ String expr_to_string(Expr* expr) {
     return str;
 }
 
+String stmt_to_string(Stmt* stmt) {
+    return expr_to_string(stmt->expr);
+}
+ 
 
+// Parser below
 
 Parser parser_init(const char* text) {
-    Lexer lexer    = lexer_init(text);
-    Expr* ast      = NULL;
-    bool had_error = false; 
-    return (Parser) {lexer, ast, had_error};
+    Lexer lexer         = lexer_init(text);
+    Array_stmt stmt_arr = array_stmt_init(); 
+    bool had_error      = false; 
+    return (Parser) {lexer, stmt_arr, had_error};
 }
 
 void parser_parse(Parser* parser) {
-    parser->ast = expression(&parser->lexer);
+    while(!lexer_is_at_end(&parser->lexer)) {
+        Stmt stmt = statement(&parser->lexer);
+        array_stmt_add(&parser->stmt_arr, stmt);
+        lexer_skip_whitespaces(&parser->lexer);
+
+    }
+        
+    // TODO: Delete expr inside the Stmt here
+
+    for (int i=0; i<parser->stmt_arr.length; ++i) {
+        Expr* expr         = parser->stmt_arr.arr[i].expr;
+        String expr_as_str = expr_to_string(expr);
+        string_print(&expr_as_str);
+    }
 }
 
 
-void parser_evaluate_expr(Parser* parser) {
-    Expr* expr      = parser->ast;
-    Evaluation eval = evalueate_expression(expr);
-}
+// void parser_evaluate_expr(Parser* parser) {
+//     Expr* expr      = parser->ast;
+//     Evaluation eval = evalueate_expression(expr);
+// }
 
 Evaluation evalueate_expression(Expr* expr) {
     switch (expr->type) {
@@ -695,5 +737,9 @@ Evaluation evalueate_expression(Expr* expr) {
     }
 }
 
+
+
+// TODO-LIST: 
+//      -- Delete dynamic Expr from heap.
 
 

@@ -1,0 +1,81 @@
+=============================================================
+== Grammar 0.10
+
+expression :: equality 
+equality   :: comparison ( ( "!=" | "==" ) comparison )* 
+comparison :: term ( ( ">" | ">=" | "<" | "<=" ) term )* 
+term       :: factor ( ( "-" | "+" ) factor )* 
+factor     :: unary ( ( "/" | "*" ) unary )* 
+unary      :: ( "!" | "-" ) unary
+              | primary 
+primary    :: INTEGER | "(" expression ")" 
+=============================================================
+
+=============================================================
+== Grammar 0.11
+
+expression :: equality 
+equality   :: and_or ( ( "!=" | "==" ) and_or )*                <---
+and_or     :: comparison ( ( "and" | "or" )  comparison )*  
+comparison :: term ( ( ">" | ">=" | "<" | "<=" ) term )* 
+term       :: factor ( ( "-" | "+" ) factor )* 
+factor     :: unary ( ( "/" | "*" ) unary )* 
+unary      :: ( "!" | "-" ) unary
+              | primary 
+primary    :: INTEGER | BOOLEAN | "(" expression ")" 
+=============================================================
+
+=============================================================
+== Grammar 0.20
+
+program         :: statement*                               <---
+statement       :: expression_stmt | print_stmt             <---
+expression_stmt :: expression ";"                           <---
+print_stmt      :: "print" expression ";"                   <---
+
+expression :: equality 
+equality   :: and_or ( ( "!=" | "==" ) and_or )*                
+and_or     :: comparison ( ( "and" | "or" )  comparison )*  
+comparison :: term ( ( ">" | ">=" | "<" | "<=" ) term )* 
+term       :: factor ( ( "-" | "+" ) factor )* 
+factor     :: unary ( ( "/" | "*" ) unary )* 
+unary      :: ( "!" | "-" ) unary
+              | primary 
+primary    :: INTEGER | BOOLEAN | "(" expression ")" 
+=============================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

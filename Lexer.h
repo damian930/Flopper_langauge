@@ -26,6 +26,8 @@ typedef enum {
     Token_Type_And,
     Token_Type_Or,
 
+    Token_Type_Print,
+
     Token_Type_Illegal,
     Token_Type_EOF
 } Token_Type;
@@ -42,19 +44,19 @@ typedef struct {
 
 Lexer lexer_init(const char *text);
 
-static bool lexer_is_at_end(const Lexer *lexer);
-static char lexer_peek_next_char(const Lexer *lexer);
-static char lexer_consume_char(Lexer *lexer);
+bool lexer_is_at_end(const Lexer *lexer);
+char lexer_peek_next_char(const Lexer *lexer);
+char lexer_consume_char(Lexer *lexer);
 
 Token lexer_next_token(Lexer *lexer);
 Token lexer_peek_next_token(Lexer* lexer);
 bool  lexer_match_token(Lexer* lexer, Token_Type expected_type);
 void  lexer_consume_token__exits(Lexer* lexer, Token_Type expected_type, const char* error_message);
 
-static Token lexer_init_token(Lexer *lexer, Token_Type type);
-static Token lexer_create_string_token(Lexer *lexer);
-static Token lexer_create_digit_token(Lexer *lexer);
-static void  lexer_skip_whitespaces(Lexer *lexer);
+Token lexer_init_token(Lexer *lexer, Token_Type type);
+Token lexer_create_string_token(Lexer *lexer);
+Token lexer_create_digit_token(Lexer *lexer);
+void  lexer_skip_whitespaces(Lexer *lexer);
 
 Token token_init(Token_Type type, char *lexeme, int length);
 void token_print(Token *token);

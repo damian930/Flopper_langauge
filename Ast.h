@@ -2,24 +2,33 @@
 #include "Ast.h"
 #include "Lexer.h"
 #include "my_String.h"
+#include "Array_Stmt.h"  // This include is now safe
 
+// ==================================
 typedef enum Expr_type Expr_type;
 
 typedef struct Primary Primary;
 typedef struct Unary   Unary;
 typedef struct Binary  Binary;
 typedef struct Expr    Expr;
+// ==================================
 
-// == Grammar
-//          Current grammar
-// expression :: equality ;
-// equality   :: comparison ( ( "!=" | "==" ) comparison )* ;
-// comparison :: term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
-// term       :: factor ( ( "-" | "+" ) factor )* ;
-// factor     :: unary ( ( "/" | "*" ) unary )* ;
-// unary      :: ( "!" | "-" ) unary
-//                | primary ;
-// primary    :: INTEGER | STRING | "(" expression ")" ;
+// ==================================
+typedef enum Stmt_type Stmt_type;
+typedef struct Stmt    Stmt;
+// ==================================
+
+// ==================================
+typedef enum Evaluation_type Evaluation_type; // TODO: change the name, make is smaller
+typedef struct Evaluation Evaluation; 
+// ==================================
+
+
+// ==================================
+typedef struct Parser     Parser;
+// ==================================
+
+// ========================================================================================
 
 enum Expr_type {
     Expr_type_primary,
@@ -63,24 +72,25 @@ Expr* term(Lexer* lexer);
 Expr* comparison(Lexer* lexer);
 Expr* equality(Lexer* lexer);
 Expr* expression(Lexer* lexer);
-
-// void epxr_delete(Expr* expr);
-
-// For debugging
-String expr_to_string(Expr* expr);
+// void epxr_delete(Expr* expr);   // TODO: need to delete it from heap
+String expr_to_string(Expr* expr); // For debugging
 
 
+// ========================================================================================
 
-typedef struct {
-    Lexer lexer;
-    Expr* ast;
 
-    bool had_error;
-} Parser;
+enum Stmt_type{
+    Stmt_type_expr,
+    Stmt_type_print,
+};
 
-Parser parser_init(const char* text);
+struct Stmt{
+    Stmt_type type;
+    Expr* expr;
+};
 
-void parser_parse(Parser* parser);
+
+// ========================================================================================
 
 
 typedef enum {
@@ -88,14 +98,30 @@ typedef enum {
     Evaluation_type_boolean,
 } Evaluation_type;
 
-typedef struct {
+struct Evaluation {
     Evaluation_type type;
     union {
         int  integer;
         bool boolean;
     } union_;
-} Evaluation;
+};
 
-void parser_evaluate_expr(Parser* parser);
-Evaluation evalueate_expression(Expr* expr);
+
+// ========================================================================================
+
+
+struct Parser {
+    Lexer lexer;
+    Array_stmt stmt_arr;
+    bool  had_error;
+};
+
+Parser parser_init(const char* text); // NOTE: create its own Lexer
+void   parser_parse(Parser* parser);
+Evaluation parser_evalueate_expression(Expr* expr);
+
+
+
+
+
 

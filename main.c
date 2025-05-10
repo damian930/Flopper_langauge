@@ -2,39 +2,32 @@
 #include "Lexer.h"
 #include "Ast.h"
 #include "my_String.h"
+#include "Array_Stmt.h"
+
+String read_file(const char* file_name) {
+	String str = string_init("");
+
+	FILE* file         = NULL;
+	errno_t error_code = fopen_s(&file, file_name, "r");
+	if (error_code != 0 ) {
+		printf("Was not able to open the file: %s. \n", file_name);
+		exit(1);
+	}
+	char* buffer[100];
+	while(fgets(buffer, 100, file) != NULL) {
+		string_add_c_string(&str, buffer);
+	}
+	fclose(file);
+
+	return str;
+}
 
 int main() {
-	// =====================================================
-			// == Grammar
-			//          Current grammar
-			// expression :: equality ;
-			// equality   :: comparison ( ( "!=" | "==" ) comparison )* ;
-			// comparison :: term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
-			// term       :: factor ( ( "-" | "+" ) factor )* ;
-			// factor     :: unary ( ( "/" | "*" ) unary )* ;
-			// unary      :: ( "!" | "-" ) unary
-			//                | primary ;
-			// primary    :: INTEGER | STRING | "(" expression ")" ;
-
-	char* text    = " !false ";
-	// Lexer lexer   = lexer_init(text);
-	// Token token   = lexer_next_token(&lexer);
-	// token_print(&token);
+	String code = read_file("code_input.txt");
 	
-	Parser parser = parser_init(text);
+	Parser parser = parser_init(code.str);
 	parser_parse(&parser);
 
-	String expr_as_str = expr_to_string(parser.ast);
-	string_print(&expr_as_str);
-
-	Evaluation eval = evalueate_expression(parser.ast);
-	printf("Eval.type: %d \n", eval.type);
-	printf("Eval.int : %d \n", eval.union_.integer);
-
-
-	// epxr_delete(parser.ast);
-	// parser.ast = NULL;
-	// string_print(&expr_as_str);
 
 
 	return 0;
