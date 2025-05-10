@@ -118,7 +118,9 @@ struct Parser {
 
 Parser parser_init(const char* text); // NOTE: create its own Lexer
 void   parser_parse(Parser* parser);
-Evaluation parser_evalueate_expression(Expr* expr);
+Evaluation evaluate_expression(Expr* expr);
+
+void parser_execute_statement(Stmt* stmt); 
 
 
 

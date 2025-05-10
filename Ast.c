@@ -522,6 +522,13 @@ void parser_parse(Parser* parser) {
         String expr_as_str = expr_to_string(expr);
         string_print(&expr_as_str);
     }
+
+    printf("\n\n");
+
+    for (int i=0; i<parser->stmt_arr.length; ++i) {
+        Stmt stmt = parser->stmt_arr.arr[i];
+        parser_execute_statement(&stmt);
+    }
 }
 
 
@@ -530,30 +537,30 @@ void parser_parse(Parser* parser) {
 //     Evaluation eval = evalueate_expression(expr);
 // }
 
-Evaluation evalueate_expression(Expr* expr) {
+Evaluation evaluate_expression(Expr* expr) {
     switch (expr->type) {
         case Expr_type_primary: {
             Token_Type primary_type = expr->union_.primary.type;
             
-        if (primary_type == Token_Type_True || primary_type == Token_Type_False) {
-            return (Evaluation) {
-                .type           = Evaluation_type_boolean,
-                .union_.boolean = expr->union_.primary.union_.boolean,
-            };
-        }
-        
-        if (primary_type == Token_Type_Integer) {
-            return (Evaluation) {
-                .type           = Evaluation_type_integer,
-                .union_.integer = expr->union_.primary.union_.integer,
-            };
-        }
+            if (primary_type == Token_Type_True || primary_type == Token_Type_False) {
+                return (Evaluation) {
+                    .type           = Evaluation_type_boolean,
+                    .union_.boolean = expr->union_.primary.union_.boolean,
+                };
+            }
+            
+            if (primary_type == Token_Type_Integer) {
+                return (Evaluation) {
+                    .type           = Evaluation_type_integer,
+                    .union_.integer = expr->union_.primary.union_.integer,
+                };
+            }
 
         }
 
         case Expr_type_unary: {
             Token_Type operator = expr->union_.unary.operator.type;
-            Evaluation right    = evalueate_expression(expr->union_.unary.right);
+            Evaluation right    = evaluate_expression(expr->union_.unary.right);
 
             switch (operator) {
                 case (int) '!': {
@@ -612,8 +619,8 @@ Evaluation evalueate_expression(Expr* expr) {
 
         case Expr_type_binary: {
             Token_Type operator =  expr->union_.binary.operator.type;
-            Evaluation left     = evalueate_expression(expr->union_.binary.left);
-            Evaluation right    = evalueate_expression(expr->union_.binary.right);
+            Evaluation left     = evaluate_expression(expr->union_.binary.left);
+            Evaluation right    = evaluate_expression(expr->union_.binary.right);
 
             switch (operator) {
                 case (int) '+': {
@@ -734,9 +741,65 @@ Evaluation evalueate_expression(Expr* expr) {
 
         }
 
+        default: {
+            printf("Was not able to evauate expr, expr type unsupported. \n");
+            exit(1);
+        }
     }
 }
 
+
+void parser_execute_statement(Stmt* stmt) {
+    switch (stmt->type) {
+        case Stmt_type_expr: {
+            Expr* expr      = stmt->expr;
+            Evaluation eval = evaluate_expression(expr);
+            printf("Evaluated \n");
+
+            break;
+        }
+
+        case Stmt_type_print: {
+            Expr* expr      = stmt->expr;
+            Evaluation eval = evaluate_expression(expr);
+            switch (eval.type) {
+                case Evaluation_type_integer: {
+                    printf("%d", eval.union_.integer);
+                    printf("\n");
+                    break;
+                }
+
+                case Evaluation_type_boolean: {
+                    if (eval.union_.boolean == true) 
+                        printf("true");
+                    else 
+                        printf("false");
+
+                    printf("\n");
+                    
+                    break;
+                }
+
+                default: {
+                    printf("Got an unexpected evaluation type inside \"parser_execute_stmt\". \n");
+                    exit(1);
+                }
+
+            }
+            break;
+        }
+
+        default: {
+            printf("Was not able to execute a statement. Statement type is unsupported. \n");
+            printf("\tStatement: ");
+            String expr_as_str = expr_to_string(stmt->expr);
+            string_print(&expr_as_str);
+            printf("\n");
+            exit(1);
+        }
+
+    }
+} 
 
 
 // TODO-LIST: 
