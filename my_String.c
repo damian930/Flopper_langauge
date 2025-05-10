@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "my_String.h"
 #include "string.h"
+#include "stdbool.h"
 
 static 
 int length_of_str(const char* str) {
@@ -87,6 +88,18 @@ void string_add_string(String* str, String* other_str) {
     str->length += other_str->length;
     str->str[str->length] = '\0';
 }
+
+bool string_equal(String* str1, String* str2) {
+    if (str1->length != str2->length) return false;
+
+    for(int i=0; i<str1->length; ++i) {
+        if (str1->str[i] != str2->str[i])
+            return false;
+    }
+    return true;
+}
+
+
 
 void string_print(String* str) {
     printf("%s \n", str->str);

@@ -28,10 +28,11 @@ int map_variables_hash(String name) {
     return name.length;
 }
 
+// NOTE: If a variable is already in the map, it just adds a copy of it
 void map_variables_add(Map_variables* map, String name, Evaluation value) {
     // Getting hash
     int hash = map_variables_hash(name);
-    printf("Hash: %d \n", hash);
+    //printf("Hash: %d \n", hash);
 
     // Searching for the index of hash value
     int tuple_idx_for_hash = -1;
@@ -43,7 +44,7 @@ void map_variables_add(Map_variables* map, String name, Evaluation value) {
             break;
         }
     }
-    printf("tuple_idx_for_hash: %d \n", tuple_idx_for_hash);
+    //printf("tuple_idx_for_hash: %d \n", tuple_idx_for_hash);
 
 
     // Not found
@@ -67,18 +68,18 @@ void map_variables_add(Map_variables* map, String name, Evaluation value) {
         ((Tuple__hash_variables*) map->hash_variable_tuples.arr)[tuple_idx_for_hash] = tuple;
     }
 
-    printf("Current map varaibles: \n");
-    for (int i=0; i<map->hash_variable_tuples.length; ++i) {
-        Tuple__hash_variables tuple =
-            ((Tuple__hash_variables*) map->hash_variable_tuples.arr)[i];
+    //printf("Current map varaibles: \n");
+    //for (int i=0; i<map->hash_variable_tuples.length; ++i) {
+    //    Tuple__hash_variables tuple =
+    //        ((Tuple__hash_variables*) map->hash_variable_tuples.arr)[i];
 
-        for (int j=0; j<tuple.variables.length; ++j) {
-            Variable var = ((Variable*)tuple.variables.arr)[j];
-            printf("\tVariable: ");
-            string_print(&var.name);
-            printf("\n");
-        }
-    }
+    //    for (int j=0; j<tuple.variables.length; ++j) {
+    //        Variable var = ((Variable*)tuple.variables.arr)[j];
+    //        //printf("\tVariable: ");
+    //        //string_print(&var.name);
+    //        //printf("\n");
+    //    }
+    //}
 
 }
 
@@ -96,7 +97,7 @@ Variable map_variables_get(Map_variables* map, String name) {
                 ((Variable*) tuples[i].variables.arr);
             
             for (int j=0; j<variables_len; ++j) {
-                if (variables[j].name.str == name.str) {
+                if (string_equal(&variables[j].name, &name)) {
                     return variables[j];
                 }
             }

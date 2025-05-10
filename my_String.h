@@ -1,4 +1,5 @@
 #pragma once
+#include <stdbool.h>
 
 typedef struct {
     char* str;
@@ -12,6 +13,7 @@ void string_delete(String* str);
 
 void string_add_c_string(String* str, char* other_str);
 void string_add_string(String* str, String* other_str);
+bool string_equal(String* str1, String* str2);
 
 void string_print(String* str);
 void string_debug_print(String* str);

@@ -37,8 +37,55 @@ int main() {
 		string_init("Flopper"), 
 		(Evaluation) { .type = Evaluation_type_integer, .union_.boolean = true } 
 	);
-	map_variables_delete(&map_variables);
 
+	map_variables_add(
+		&map_variables,
+		string_init("Flopper1"),
+		(Evaluation) {
+		.type = Evaluation_type_integer, .union_.boolean = true
+	}
+	);
+	map_variables_add(
+		&map_variables,
+		string_init("Flopper2"),
+		(Evaluation) {
+		.type = Evaluation_type_integer, .union_.boolean = true
+	}
+	);
+	map_variables_add(
+		&map_variables,
+		string_init("Flopper3"),
+		(Evaluation) {
+		.type = Evaluation_type_integer, .union_.boolean = true
+	}
+	);
+	map_variables_add(
+		&map_variables,
+		string_init("Flopper4"),
+		(Evaluation) {
+		.type = Evaluation_type_integer, .union_.boolean = true
+	}
+	);
+	map_variables_add(
+		&map_variables,
+		string_init("Flopper5"),
+		(Evaluation) {
+		.type = Evaluation_type_integer, .union_.boolean = false
+	}
+	);
+	map_variables_add(
+		&map_variables,
+		string_init("Flopper6"),
+		(Evaluation) {
+		.type = Evaluation_type_integer, .union_.boolean = true
+	}
+	);
+	
+	Variable var = map_variables_get(&map_variables, string_init("Flopper5"));
+	printf("Variable.name : %s \n", var.name.str);
+	printf("Variable.value: %d \n", var.value.union_.boolean);
+	
+	map_variables_delete(&map_variables);
 
 	printf(" --> DONE <-- \n");
 	
