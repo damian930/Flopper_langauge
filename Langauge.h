@@ -1,13 +1,9 @@
 #pragma once
-#include "Ast.h"
+#include "Parser.h"
 #include "Array.h"
 #include "my_String.h"
 
-// ========================================================================================
-// List of pointers, each pointer point to a Tuple (int hash, Variable*)
-// arr inside the tuple is a pointer to an array of variables, 
-// each variable is a String name and as Evaluation value
-
+// ================================================================================
 typedef struct Variable Variable;
 typedef struct Tuple__hash_variables Tuple__hash_variables;
 typedef struct Map_variables Map_variables;
@@ -32,19 +28,22 @@ int map_variables_hash(String name);
 void map_variables_add(Map_variables* map, String name, Evaluation value);
 Variable map_variables_get(Map_variables* map, String name);
 
+// ================================================================================
 
-// ========================================================================================
 
 
 typedef struct Language Language;
 
 struct Language {
     Parser parser;
-    // Variables
-    
+    Map_variables map_variables;
 };
+Language language_init(const char* text);
+void language_delete(Language* language);
+void language_execute(Language* language);
 
-
+Evaluation language_evaluate_expression(Language* language, Expr* expr);
+void       language_execute_statement(Language* language, Stmt* stmt);
 
 
 

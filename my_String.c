@@ -41,9 +41,7 @@ void string_delete(String* str) {
     str->length   = 0;
 }
 
-void string_add_c_string(String* str, char* other_str) {
-    int other_str_len = length_of_str(other_str);
-
+void string_add_c_string(String* str, char* other_str, int other_str_len) {
     int capacity = str->capacity;
     if (capacity < str->length + other_str_len + 1) {
         while (capacity < str->length + other_str_len + 1) {
@@ -59,6 +57,30 @@ void string_add_c_string(String* str, char* other_str) {
         str->capacity = capacity;
     }
     
+    for (int i = str->length; i < str->length + other_str_len; ++i) {
+        str->str[i] = other_str[i - str->length];
+    }
+    str->length += other_str_len;
+    str->str[str->length] = '\0';
+}
+
+void string_add_whole_c_string(String* str, char* other_str) {
+    int other_str_len = length_of_str(other_str);
+    int capacity = str->capacity;
+    if (capacity < str->length + other_str_len + 1) {
+        while (capacity < str->length + other_str_len + 1) {
+            capacity *= 2;
+        }
+
+        str->str = realloc(str->str, sizeof(char) * capacity);
+        if (str->str == NULL) {
+            printf("Was not able to allocate a string on heap. ");
+            printf("The size of memory needed was: %d bytes. \n", capacity * sizeof(char));
+            exit(1);
+        }
+        str->capacity = capacity;
+    }
+
     for (int i = str->length; i < str->length + other_str_len; ++i) {
         str->str[i] = other_str[i - str->length];
     }

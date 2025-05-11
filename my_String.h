@@ -11,7 +11,8 @@ typedef struct {
 String string_init(char* str);
 void string_delete(String* str);
 
-void string_add_c_string(String* str, char* other_str);
+void string_add_c_string(String* str, char* other_str, int other_str_len);
+void string_add_whole_c_string(String* str, char* other_str);
 void string_add_string(String* str, String* other_str);
 bool string_equal(String* str1, String* str2);
 

@@ -1,5 +1,4 @@
 #pragma once
-#include "Ast.h"
 #include "Lexer.h"
 #include "my_String.h"
 #include "Array.h"
@@ -11,6 +10,7 @@ typedef struct Primary Primary;
 typedef struct Unary   Unary;
 typedef struct Binary  Binary;
 typedef struct Expr    Expr;
+typedef struct Var_const_decl    Var_const_decl;
 // ==================================
 
 // ==================================
@@ -42,6 +42,8 @@ struct Primary {
         int integer;
         bool boolean;
         // char* string;
+
+        String identifier;
     } union_;
 };
 
@@ -72,30 +74,62 @@ Expr* term(Lexer* lexer);
 Expr* comparison(Lexer* lexer);
 Expr* equality(Lexer* lexer);
 Expr* expression(Lexer* lexer);
+
 // void epxr_delete(Expr* expr);   // TODO: need to delete it from heap
 String expr_to_string(Expr* expr); // For debugging
 
 
 // ========================================================================================
 
+// TODO: why do i have 2 forawrd declarations, up top and here
+typedef enum   Stmt_type            Stmt_type; 
+typedef struct Stmt_expr            Stmt_expr;
+typedef struct Stmt_print           Stmt_print; 
+typedef struct Stmt_var_decl  Stmt_var_decl; 
 
-enum Stmt_type{
+
+enum Stmt_type {
     Stmt_type_expr,
     Stmt_type_print,
+    Stmt_type_declaration,
 };
 
-struct Stmt{
-    Stmt_type type;
+struct Stmt_expr {
     Expr* expr;
 };
+
+struct Stmt_print {
+    Expr* expr;
+};
+
+struct Stmt_var_decl {
+    Token var_name;
+    Expr* init_expr;
+};
+
+struct Stmt {
+    Stmt_type type;
+    union {
+        Stmt_expr  stmt_expr;
+        Stmt_print print;
+        Stmt_var_decl var_decl;
+    } union_;
+};
+
+Stmt print_stmt(Lexer* lexer);
+Stmt expression_stmt(Lexer* lexer);
+Stmt statement(Lexer* lexer);
+Stmt var_declaration(Lexer* lexer);
+Stmt declaration(Lexer* lexer);
+Stmt program(Lexer* lexer);
 
 
 // ========================================================================================
 
-
 typedef enum {
     Evaluation_type_integer,
     Evaluation_type_boolean,
+    Evaluation_type_absent,
 } Evaluation_type;
 
 struct Evaluation {
@@ -105,10 +139,10 @@ struct Evaluation {
         bool boolean;
     } union_;
 };
+void evaluation_print(Evaluation* eval);
 
 
 // ========================================================================================
-
 
 struct Parser {
     Lexer lexer;
@@ -118,9 +152,9 @@ struct Parser {
 
 Parser parser_init(const char* text); // NOTE: create its own Lexer
 void   parser_parse(Parser* parser);
-Evaluation evaluate_expression(Expr* expr);
+// TODO: RALLY need a delete function for parser
 
-void parser_execute_statement(Stmt* stmt); 
+
 
 
 

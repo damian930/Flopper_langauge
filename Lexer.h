@@ -26,6 +26,8 @@ typedef enum {
     Token_Type_And,
     Token_Type_Or,
 
+    Token_Type_Identifier,
+
     Token_Type_Print,
 
     Token_Type_Illegal,
@@ -50,12 +52,15 @@ char lexer_consume_char(Lexer *lexer);
 
 Token lexer_next_token(Lexer *lexer);
 Token lexer_peek_next_token(Lexer* lexer);
+Token lexer_peek_n_token(Lexer* lexer, int n);
 bool  lexer_match_token(Lexer* lexer, Token_Type expected_type);
-void  lexer_consume_token__exits(Lexer* lexer, Token_Type expected_type, const char* error_message);
+Token lexer_consume_token__exits(Lexer* lexer, Token_Type expected_type, const char* error_message);
 
 Token lexer_init_token(Lexer *lexer, Token_Type type);
 Token lexer_create_string_token(Lexer *lexer);
 Token lexer_create_digit_token(Lexer *lexer);
+Token lexer_create_identifier_token(Lexer* lexer);
+Token lexer_match_keyword(Lexer* lexer, int current_token_offset, const char* rest, int rest_len, Token_Type type_to_match);
 void  lexer_skip_whitespaces(Lexer *lexer);
 
 Token token_init(Token_Type type, char *lexeme, int length);

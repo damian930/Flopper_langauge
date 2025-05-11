@@ -53,6 +53,8 @@ Token lexer_next_token(Lexer *lexer) {
         return lexer_init_token(lexer, (int)'(');
     case ')':
         return lexer_init_token(lexer, (int)')');
+    case ':':
+        return lexer_init_token(lexer, (int) ':');
     case '+':
         return lexer_init_token(lexer, (int)'+');
     case '-':
@@ -101,68 +103,7 @@ Token lexer_next_token(Lexer *lexer) {
             return lexer_init_token(lexer, Token_Type_Equals_Equals);
         }
         else
-            return lexer_init_token(lexer, Token_Type_Illegal);
-    }
-    case 't': {
-        if (
-            lexer_consume_char(lexer) == 'r' &&
-            lexer_consume_char(lexer) == 'u' &&
-            lexer_consume_char(lexer) == 'e'
-        ) {
-            return lexer_init_token(lexer, Token_Type_True);
-        }
-        else {
-            printf("Was not able to recognise \"true\" after 't' \n");
-            exit(1);
-        }
-    }
-    case 'f': {
-        if (
-            lexer_consume_char(lexer) == 'a' &&
-            lexer_consume_char(lexer) == 'l' &&
-            lexer_consume_char(lexer) == 's' &&
-            lexer_consume_char(lexer) == 'e'
-        ) {
-            return lexer_init_token(lexer, Token_Type_False);
-        }
-        else {
-            printf("Was not able to recognise \"false\" after 'f' \n");
-            exit(1);
-        }
-    }
-    case 'a': {
-        if (
-            lexer_consume_char(lexer) == 'n' &&
-            lexer_consume_char(lexer) == 'd'
-        ) {
-            return lexer_init_token(lexer, Token_Type_And);
-        }
-        else {
-            printf("Was not able to recognise \"and\" after 'a' \n");
-            exit(1);
-        }
-    }
-    case 'o': {
-        if (lexer_consume_char(lexer) == 'r') {
-            return lexer_init_token(lexer, Token_Type_Or);
-        }
-        else {
-            printf("Was not able to recognise \"or\" after 'o' \n");
-            exit(1);
-        }
-    }
-    case 'p': {
-        if (lexer_consume_char(lexer) == 'r' &&
-            lexer_consume_char(lexer) == 'i' &&
-            lexer_consume_char(lexer) == 'n' &&
-            lexer_consume_char(lexer) == 't'
-        ) {
-            return lexer_init_token(lexer, Token_Type_Print);
-        }
-        else {
-            printf("Was not able to recognise \"print\" after 'p' \n");
-            exit(1);
-        }
+            return lexer_init_token(lexer, (int) '=');
     }
 
     default:
@@ -172,13 +113,25 @@ Token lexer_next_token(Lexer *lexer) {
         if (isdigit(prev_ch))
             return lexer_create_digit_token(lexer);
 
-        return lexer_init_token(lexer, Token_Type_Illegal);
+        return lexer_create_identifier_token(lexer);
+        //  return lexer_init_token(lexer, Token_Type_Illegal);
     }
 }
 
 Token lexer_peek_next_token(Lexer* lexer) {
     int token_start_idx = lexer->current_idx;
     Token token = lexer_next_token(lexer);
+    lexer->current_idx = token_start_idx;
+    return token;
+}
+
+Token lexer_peek_n_token(Lexer* lexer, int n) {
+    int token_start_idx = lexer->current_idx;
+    
+    Token token;
+    for (int i=0; i<n; ++i)
+        token = lexer_next_token(lexer);
+    
     lexer->current_idx = token_start_idx;
     return token;
 }
@@ -193,12 +146,13 @@ bool lexer_match_token(Lexer* lexer, Token_Type expected_type) {
         return false;
 }
 
-void lexer_consume_token__exits(Lexer* lexer, Token_Type expected_type, const char* error_message) {
+Token lexer_consume_token__exits(Lexer* lexer, Token_Type expected_type, const char* error_message) {
     Token token = lexer_next_token(lexer);
     if (token.type != expected_type) {
         printf("%s", error_message);
         exit(1);
     }
+    return token;
 }
 
 Token lexer_create_string_token(Lexer *lexer) {
@@ -243,6 +197,38 @@ Token lexer_create_digit_token(Lexer *lexer) {
 
 }
 
+Token lexer_create_identifier_token(Lexer* lexer) {
+    // Read the indentifier
+    char next_char = lexer_peek_next_char(lexer);
+    while (!lexer_is_at_end(lexer) && (isalnum(next_char) || next_char == '_')) {
+        lexer_consume_char(lexer);
+        next_char = lexer_peek_next_char(lexer);
+    }
+    
+    // Get the type of the identifier
+    switch (lexer->text[lexer->token_start_idx]) {
+        case 't': return lexer_match_keyword(lexer, 1, "rue",  3, Token_Type_True );
+        case 'f': return lexer_match_keyword(lexer, 1, "alse", 4, Token_Type_False);
+        case 'a': return lexer_match_keyword(lexer, 1, "nd",   2, Token_Type_And  );
+        case 'o': return lexer_match_keyword(lexer, 1, "r",    1, Token_Type_Or   );
+        case 'p': return lexer_match_keyword(lexer, 1, "rint", 4, Token_Type_Print);
+        default : return lexer_init_token(lexer, Token_Type_Identifier); 
+    }
+}
+
+Token lexer_match_keyword(Lexer* lexer, int current_token_offset, const char* rest, int rest_len, Token_Type type_to_match) {
+    // Might be out token, need to check
+    if (lexer->token_start_idx + current_token_offset + rest_len == lexer->current_idx) {
+        for (int i=0; i<rest_len; ++i) {
+            if (lexer->text[lexer->token_start_idx + current_token_offset + i] != rest[i])
+            break;
+        }
+        return lexer_init_token(lexer, type_to_match);
+    }
+
+    return lexer_init_token(lexer, Token_Type_Identifier); 
+}
+
 void lexer_skip_whitespaces(Lexer *lexer) {
     while (isspace(lexer_peek_next_char(lexer))) {
         lexer_consume_char(lexer);
@@ -276,3 +262,7 @@ void token_print(Token *token) {
     }
     printf("\"\n");
 }
+
+
+
+// Ctrl + K Ctrl + 0

@@ -45,11 +45,12 @@ primary    :: INTEGER | BOOLEAN | "(" expression ")"
 =============================================================
 
 =============================================================
-== Grammar 0.3
+== Grammar 0.21
 
-program         :: declaration*
+program         :: declaration*                                     
 declaration     :: var_declaration | statement
-var_declaration :: IDENTIFIER: IDENTIFIER (= expression)? ";"   <---                            
+
+var_declaration :: IDENTIFIER ":" IDENTIFIER (= expression)? ";"   <---                            
 statement       :: expression_stmt | print_stmt             
 expression_stmt :: expression ";"                          
 print_stmt      :: "print" expression ";"                   

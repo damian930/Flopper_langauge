@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include "stdio.h"
-#include "Ast.h"
+#include "Parser.h"
 #include "Lexer.h"
 #include "my_String.h"
 #include "Array.h"
@@ -44,21 +44,25 @@ Expr* primary(Lexer* lexer) {
         };
     }
 
-    // if (token.type == Token_Type_Double) {
-    //     char *endptr;
-    //     double double_value = strtod(token.lexeme, &endptr);
-    //     primary = &(Primary) {
-    //         .type = Token_Type_Double,
-    //         .union_.double_ = double_value,
-    //     };
-    // }
+    if (token.type == Token_Type_Identifier) {
+        // TODO: check if i even need malloc here. i kanda do, but if the lifetypes of the source code and this are the same and i am fine not allocating this.
+        char* name = malloc(sizeof(char) * token.length);
+        if (name == NULL) {
+            printf("Wasnt able to initialise a string due to lack of memory. \n");
+            exit(1);
+        }
+        for (int i=0; i<token.length; ++i) {
+            name[i] = token.lexeme[i];
+        }
+        String identifier = string_init("");
+        string_add_c_string(&identifier, name, token.length);
+        free(name);
 
-    // if (token.type == Token_Type_String) {
-    //     primary = &(Primary) {
-    //         .type = Token_Type_String,
-    //         .union_.string = token.lexeme,
-    //     };
-    // }
+        primary = &(Primary) {
+            .type = Token_Type_Identifier,
+            .union_.identifier = identifier,
+        };
+    }
 
     if (primary == NULL) {
         printf("Was not able to parse the primary expr. Not yet supported. \n");
@@ -310,7 +314,7 @@ Stmt print_stmt(Lexer* lexer) {
     lexer_consume_token__exits(lexer, (int) ';', "Invalid syntax, was expecting ';' at the end of expression");
     return (Stmt) {
         .type = Stmt_type_print,
-        .expr = expr,
+        .union_.print.expr = expr,
     };
 }
 
@@ -319,7 +323,7 @@ Stmt expression_stmt(Lexer* lexer) {
     lexer_consume_token__exits(lexer, (int) ';', "Invalid syntax, was expecting ';' at the end of expression");
     return (Stmt) {
         .type = Stmt_type_expr,
-        .expr = expr,
+        .union_.stmt_expr.expr = expr, // TODO:fix the 3x expression in a row
     };
 }
 
@@ -332,8 +336,39 @@ Stmt statement(Lexer* lexer) {
     return expression_stmt(lexer);
 }
 
+Stmt var_declaration(Lexer* lexer) {
+    Token var_name = lexer_consume_token__exits(lexer, Token_Type_Identifier, "Was expecting an identifier for variable name. \n");
+    lexer_consume_token__exits(lexer, (int) ':', "Was expecting a type specifier ':' after a variable declaraion. \n");
+    Token var_type = lexer_consume_token__exits(lexer, Token_Type_Identifier, "Was expecting an identifier of the type specification for variable creation. \n");
+
+    Expr* r_value_epxr = NULL;
+    if (lexer_peek_next_token(lexer).type == (int) '=') {
+        lexer_next_token(lexer);
+        r_value_epxr = expression(lexer);
+    }
+    lexer_consume_token__exits(lexer, (int)';', "Was expecting a ';' for the end of a statement, but wasnt found. \n");
+
+
+    return (Stmt) {
+        .type = Stmt_type_declaration,
+        .union_.var_decl = (Stmt_var_decl) {
+            .var_name  = var_name,
+            .init_expr = r_value_epxr, 
+        },
+    };
+
+}
+
+Stmt declaration(Lexer* lexer) {
+    if (lexer_peek_n_token(lexer, 1).type == Token_Type_Identifier &&
+        lexer_peek_n_token(lexer, 2).type == (int) ':')
+        return var_declaration(lexer);
+    else 
+        return statement(lexer);
+}
+
 Stmt program(Lexer* lexer) {
-    return statement(lexer);
+    return declaration(lexer);
 }
 
 
@@ -349,9 +384,9 @@ String expr_to_string(Expr* expr) {
                 case Token_Type_Integer: {
                     char int_as_str[30];
                     _itoa_s(expr->union_.primary.union_.integer, int_as_str, 30, 10);
-                    string_add_c_string(&str, "(integer -> ");
-                    string_add_c_string(&str, int_as_str);
-                    string_add_c_string(&str, ")");
+                    string_add_whole_c_string(&str, "(integer -> ");
+                    string_add_whole_c_string(&str, int_as_str);
+                    string_add_whole_c_string(&str, ")");
                     
                     break;
                 }
@@ -360,9 +395,9 @@ String expr_to_string(Expr* expr) {
                 case Token_Type_False: {
                     bool bool_value   = expr->union_.primary.union_.boolean;
                     char* bool_as_str = (bool_value == true ? "true" : "false"); 
-                    string_add_c_string(&str, "(bool -> ");
-                    string_add_c_string(&str, bool_as_str);
-                    string_add_c_string(&str, ")"); 
+                    string_add_whole_c_string(&str, "(bool -> ");
+                    string_add_whole_c_string(&str, bool_as_str);
+                    string_add_whole_c_string(&str, ")");
                     
                     break;
                 }
@@ -413,10 +448,10 @@ String expr_to_string(Expr* expr) {
                     }
                     operator_str[operator_lexeme_size] = '\0';
 
-                    string_add_c_string(&str, "("); 
-                    string_add_c_string(&str, operator_str); 
-                    string_add_string(&str, &child_expr_str);
-                    string_add_c_string(&str, ")");
+                    string_add_whole_c_string(&str, "(");
+                    string_add_whole_c_string(&str, operator_str);
+                    string_add_whole_c_string(&str, &child_expr_str);
+                    string_add_whole_c_string(&str, ")");
                 
                     string_delete(&child_expr_str);
                     free(operator_str);
@@ -470,11 +505,11 @@ String expr_to_string(Expr* expr) {
                 }
             }
 
-            string_add_c_string(&str, "[");
-            string_add_c_string(&str, operator);
-            string_add_string(&str, &child_left_expr_str);
-            string_add_string(&str, &child_right_expr_str);
-            string_add_c_string(&str, "]");
+            string_add_whole_c_string(&str, "[");
+            string_add_whole_c_string(&str, operator);
+            string_add_whole_c_string(&str, &child_left_expr_str);
+            string_add_whole_c_string(&str, &child_right_expr_str);
+            string_add_whole_c_string(&str, "]");
 
             string_delete(&child_right_expr_str);
             string_delete(&child_left_expr_str);
@@ -494,9 +529,34 @@ String expr_to_string(Expr* expr) {
 }
 
 String stmt_to_string(Stmt* stmt) {
-    return expr_to_string(stmt->expr);
+    switch (stmt->type) {
+        case Stmt_type_expr       : { return expr_to_string(&stmt->union_.stmt_expr); }
+        case Stmt_type_print      : { return expr_to_string(&stmt->union_.print    ); }
+        case Stmt_type_declaration: { return expr_to_string(&stmt->union_.var_decl ); }
+    }
 }
  
+void evaluation_print(Evaluation* eval) {
+    switch (eval->type) {
+        case Evaluation_type_integer: {
+            printf("%d", eval->union_.integer);
+            break;
+        }
+        case Evaluation_type_boolean: {
+            printf("true" ? eval->union_.boolean == true : "false");
+            break;
+        }
+        case Evaluation_type_absent: {
+            printf("Was trying to print an absent value for a variable. \n");
+            exit(1);
+        }
+        default: {
+            printf("Was trying to print evaluetion of an unsupported type. \n");
+            exit(1);
+        }
+    }
+}
+
 
 // Parser below
 
@@ -509,26 +569,12 @@ Parser parser_init(const char* text) {
 
 void parser_parse(Parser* parser) {
     while(!lexer_is_at_end(&parser->lexer)) {
-        Stmt stmt = statement(&parser->lexer);
+        Stmt stmt = program(&parser->lexer);
         array_add(&parser->stmt_arr, (void*) &stmt, Array_type_stmt);
         lexer_skip_whitespaces(&parser->lexer);
-
     }
         
-    // TODO: Delete expr inside the Stmt here
-
-    for (int i=0; i<parser->stmt_arr.length; ++i) {
-        Expr* expr         = ((Stmt*) parser->stmt_arr.arr)[i].expr;
-        String expr_as_str = expr_to_string(expr);
-        string_print(&expr_as_str);
-    }
-
-    printf("\n\n");
-
-    for (int i=0; i<parser->stmt_arr.length; ++i) {
-        Stmt stmt = ((Stmt*) parser->stmt_arr.arr)[i];
-        parser_execute_statement(&stmt);
-    }
+    // TODO: Delete expr inside the STMTs here
 }
 
 
@@ -536,270 +582,6 @@ void parser_parse(Parser* parser) {
 //     Expr* expr      = parser->ast;
 //     Evaluation eval = evalueate_expression(expr);
 // }
-
-Evaluation evaluate_expression(Expr* expr) {
-    switch (expr->type) {
-        case Expr_type_primary: {
-            Token_Type primary_type = expr->union_.primary.type;
-            
-            if (primary_type == Token_Type_True || primary_type == Token_Type_False) {
-                return (Evaluation) {
-                    .type           = Evaluation_type_boolean,
-                    .union_.boolean = expr->union_.primary.union_.boolean,
-                };
-            }
-            
-            if (primary_type == Token_Type_Integer) {
-                return (Evaluation) {
-                    .type           = Evaluation_type_integer,
-                    .union_.integer = expr->union_.primary.union_.integer,
-                };
-            }
-
-        }
-
-        case Expr_type_unary: {
-            Token_Type operator = expr->union_.unary.operator.type;
-            Evaluation right    = evaluate_expression(expr->union_.unary.right);
-
-            switch (operator) {
-                case (int) '!': {
-                    switch (right.type) {
-                        case Evaluation_type_boolean: {
-                            return (Evaluation) {
-                                .type           = Evaluation_type_boolean,
-                                .union_.boolean = ! right.union_.boolean, 
-                            };
-                        }
-
-                        default: {
-                            printf("Wasn't able to evaluate unary expr, it is not supported. \n");
-                            printf("Operator token: ");
-                            token_print(&expr->union_.binary.operator);
-                            exit(1);
-                        }
-                    }
-                }
-
-                case (int) '-': {
-                    switch (right.type) {
-                        case Evaluation_type_integer: {
-                            return (Evaluation) {
-                                .type           = Evaluation_type_integer,
-                                .union_.integer = - right.union_.integer, 
-                            };
-                        }
-
-                        default: {
-                            printf("Wasn't able to evaluate unary expr, it is not supported. \n");
-                            printf("Operator token: ");
-                            token_print(&expr->union_.binary.operator);
-                            exit(1);
-                        }
-                    }
-                }
-            }
-
-            switch (right.type) {
-                case Evaluation_type_integer: {
-                    return (Evaluation) {
-                        .type           = Evaluation_type_integer,
-                        .union_.integer = - right.union_.integer, 
-                    };
-                }
-
-                default: {
-                    printf("Wasn't able to evaluate unary expr, it is not supported. \n");
-                    printf("Operator token: ");
-                    token_print(&expr->union_.binary.operator);
-                    exit(1);
-                }
-            }
-        }
-
-        case Expr_type_binary: {
-            Token_Type operator =  expr->union_.binary.operator.type;
-            Evaluation left     = evaluate_expression(expr->union_.binary.left);
-            Evaluation right    = evaluate_expression(expr->union_.binary.right);
-
-            switch (operator) {
-                case (int) '+': {
-                    if (
-                        left.type  == Evaluation_type_integer &&
-                        right.type == Evaluation_type_integer
-                    ) {
-                        
-                        return (Evaluation) {
-                            .type           = Evaluation_type_integer,
-                            .union_.integer = left.union_.integer + right.union_.integer, 
-                        };
-                    }
-
-                    
-                    printf("Error, unsupported addition for types. \n");
-                    exit(1);
-
-                    break;
-                }
-                case (int) '-': {
-                    if (
-                        left.type  == Evaluation_type_integer &&
-                        right.type == Evaluation_type_integer
-                    ) {
-                        
-                        return (Evaluation) {
-                            .type           = Evaluation_type_integer,
-                            .union_.integer = left.union_.integer - right.union_.integer, 
-                        };
-                    }
-
-                    
-                    printf("Error, unsupported substaction for types. \n");
-                    exit(1);
-
-                    break;
-                }
-                case (int) '*': {
-                    if (
-                        left.type  == Evaluation_type_integer &&
-                        right.type == Evaluation_type_integer
-                    ) {
-                        
-                        return (Evaluation) {
-                            .type           = Evaluation_type_integer,
-                            .union_.integer = left.union_.integer * right.union_.integer, 
-                        };
-                    }
-
-                    printf("Error, unsupported multiplication for types. \n");
-                    exit(1);
-
-                    break;
-                }
-                case (int) '/': {
-                    if (
-                        left.type  == Evaluation_type_integer &&
-                        right.type == Evaluation_type_integer
-                    ) {
-                        
-                        return (Evaluation) {
-                            .type           = Evaluation_type_integer,
-                            .union_.integer = (int) (left.union_.integer / right.union_.integer), 
-                        };
-                    }
-
-                    printf("Error, unsupported division for types. \n");
-                    exit(1);
-
-                    break;
-                }
-                case Token_Type_And: {
-                    if (
-                        left.type  == Evaluation_type_boolean &&
-                        right.type == Evaluation_type_boolean
-                    ) {
-                        
-                        return (Evaluation) {
-                            .type           = Evaluation_type_boolean,
-                            .union_.boolean = left.union_.boolean && right.union_.boolean,  
-                        };
-                    }
-
-                    printf("Error, unsupported 'and' for types. \n");
-                    exit(1);
-
-                    break;
-                }
-                case Token_Type_Or: {
-                    if (
-                        left.type  == Evaluation_type_boolean &&
-                        right.type == Evaluation_type_boolean
-                    ) {
-                        
-                        return (Evaluation) {
-                            .type           = Evaluation_type_boolean,
-                            .union_.boolean = left.union_.boolean || right.union_.boolean,  
-                        };
-                    }
-
-                    printf("Error, unsupported 'or' for types. \n");
-                    exit(1);
-
-                    break;
-                }
-
-                default: {
-                    printf("Wasn't able to evaluate binary expr, it is not supported. \n");
-                    printf("Operator token: ");
-                    token_print(&expr->union_.binary.operator);
-                    exit(1);
-                }
-
-                // TODO: other bin operators
-            }
-
-
-        }
-
-        default: {
-            printf("Was not able to evauate expr, expr type unsupported. \n");
-            exit(1);
-        }
-    }
-}
-
-
-void parser_execute_statement(Stmt* stmt) {
-    switch (stmt->type) {
-        case Stmt_type_expr: {
-            Expr* expr      = stmt->expr;
-            Evaluation eval = evaluate_expression(expr);
-            printf("Evaluated \n");
-
-            break;
-        }
-
-        case Stmt_type_print: {
-            Expr* expr      = stmt->expr;
-            Evaluation eval = evaluate_expression(expr);
-            switch (eval.type) {
-                case Evaluation_type_integer: {
-                    printf("%d", eval.union_.integer);
-                    printf("\n");
-                    break;
-                }
-
-                case Evaluation_type_boolean: {
-                    if (eval.union_.boolean == true) 
-                        printf("true");
-                    else 
-                        printf("false");
-
-                    printf("\n");
-                    
-                    break;
-                }
-
-                default: {
-                    printf("Got an unexpected evaluation type inside \"parser_execute_stmt\". \n");
-                    exit(1);
-                }
-
-            }
-            break;
-        }
-
-        default: {
-            printf("Was not able to execute a statement. Statement type is unsupported. \n");
-            printf("\tStatement: ");
-            String expr_as_str = expr_to_string(stmt->expr);
-            string_print(&expr_as_str);
-            printf("\n");
-            exit(1);
-        }
-
-    }
-} 
 
 
 // TODO-LIST: 

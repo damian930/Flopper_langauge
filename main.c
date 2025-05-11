@@ -1,8 +1,7 @@
 #include "stdio.h"
 #include "Lexer.h"
-#include "Ast.h"
+#include "Parser.h"
 #include "my_String.h"
-#include "Array_Stmt.h"
 #include "Array.h"
 #include "Langauge.h"
 
@@ -17,7 +16,7 @@ String read_file(const char* file_name) {
 	}
 	char* buffer[100];
 	while(fgets(buffer, 100, file) != NULL) {
-		string_add_c_string(&str, buffer);
+		string_add_whole_c_string(&str, buffer);
 	}
 	fclose(file);
 
@@ -25,70 +24,18 @@ String read_file(const char* file_name) {
 }
 
 int main() {
-	// String code = read_file("code_input.txt");
+	String code      = read_file("code_input.txt");
+	Language flopper = language_init(code.str);
+	language_execute(&flopper);
 
-	// Parser parser = parser_init(code.str);
-	// parser_parse(&parser);
+	// printf("\n --> DONE <-- \n");
+	//Lexer lexer = lexer_init(code.str);
+	//while (!lexer_is_at_end(&lexer)) {
+	//	Token token = lexer_next_token(&lexer);
+	//	token_print(&token);
+	//}
 
-	// Testing variables map
-	Map_variables map_variables = map_variables_init();
-	map_variables_add(
-		&map_variables, 
-		string_init("Flopper"), 
-		(Evaluation) { .type = Evaluation_type_integer, .union_.boolean = true } 
-	);
 
-	map_variables_add(
-		&map_variables,
-		string_init("Flopper1"),
-		(Evaluation) {
-		.type = Evaluation_type_integer, .union_.boolean = true
-	}
-	);
-	map_variables_add(
-		&map_variables,
-		string_init("Flopper2"),
-		(Evaluation) {
-		.type = Evaluation_type_integer, .union_.boolean = true
-	}
-	);
-	map_variables_add(
-		&map_variables,
-		string_init("Flopper3"),
-		(Evaluation) {
-		.type = Evaluation_type_integer, .union_.boolean = true
-	}
-	);
-	map_variables_add(
-		&map_variables,
-		string_init("Flopper4"),
-		(Evaluation) {
-		.type = Evaluation_type_integer, .union_.boolean = true
-	}
-	);
-	map_variables_add(
-		&map_variables,
-		string_init("Flopper5"),
-		(Evaluation) {
-		.type = Evaluation_type_integer, .union_.boolean = false
-	}
-	);
-	map_variables_add(
-		&map_variables,
-		string_init("Flopper6"),
-		(Evaluation) {
-		.type = Evaluation_type_integer, .union_.boolean = true
-	}
-	);
-	
-	Variable var = map_variables_get(&map_variables, string_init("Flopper5"));
-	printf("Variable.name : %s \n", var.name.str);
-	printf("Variable.value: %d \n", var.value.union_.boolean);
-	
-	map_variables_delete(&map_variables);
-
-	printf(" --> DONE <-- \n");
-	
 	return 0;
 
 }
