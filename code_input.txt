@@ -7,7 +7,7 @@
 x: int = 4 + 1;
 print x;
 
-y := 14;
+y := false or true;
 print y;
 
 
