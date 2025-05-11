@@ -1,5 +1,8 @@
 #include "Langauge.h"
 
+// ================================================================================
+// == Hash map for variables (name -> value)
+
 Map_variables map_variables_init() {
     return (Map_variables) {
         .hash_variable_tuples = array_init(Array_type_tuple__hash_variable),
@@ -29,10 +32,9 @@ int map_variables_hash(String name) {
 }
 
 // NOTE: If a variable is already in the map, it just adds a copy of it
-void map_variables_add(Map_variables* map, String name, Evaluation value) {
+int map_variables_add(Map_variables* map, String name, Evaluation value) {
     // Getting hash
     int hash = map_variables_hash(name);
-    //printf("Hash: %d \n", hash);
 
     // Searching for the index of hash value
     int tuple_idx_for_hash = -1;
@@ -44,8 +46,6 @@ void map_variables_add(Map_variables* map, String name, Evaluation value) {
             break;
         }
     }
-    //printf("tuple_idx_for_hash: %d \n", tuple_idx_for_hash);
-
 
     // Not found
     if (tuple_idx_for_hash == -1) {
@@ -59,13 +59,21 @@ void map_variables_add(Map_variables* map, String name, Evaluation value) {
         array_add(&map->hash_variable_tuples, (void*) &new_tuple, Array_type_tuple__hash_variable); 
     }
     else { // Found
-        Tuple__hash_variables tuple = ((Tuple__hash_variables*) map->hash_variable_tuples.arr)[tuple_idx_for_hash];
-        Variable new_var            = (Variable) { .name = name, .value = value };
+        Tuple__hash_variables* tuple = 
+            ((Tuple__hash_variables*) map->hash_variable_tuples.arr) + tuple_idx_for_hash;
         
-        array_add(&tuple.variables, (void*) &new_var, Array_type_variable); 
+        Variable new_var = (Variable) { .name = name, .value = value };
 
-        // TODO: make it not copy like that all the time
-        ((Tuple__hash_variables*) map->hash_variable_tuples.arr)[tuple_idx_for_hash] = tuple;
+        // Check if the tuple arr doesn't alredy have the variable initialised
+        for (int i=0; i<tuple->variables.length; ++i) {
+            Variable temp = ((Variable*) tuple->variables.arr)[i];
+            if (string_equal(&temp.name, &new_var.name)) {
+                return -1;
+            }
+        }
+
+        array_add(&tuple->variables, (void*) &new_var, Array_type_variable); 
+        return 0;
     }
 
     //printf("Current map varaibles: \n");
@@ -112,8 +120,7 @@ Variable map_variables_get(Map_variables* map, String name) {
 
 
 // ================================================================================
-
-
+// == Language
 
 Language language_init(const char* text) {
     return (Language) {
@@ -149,7 +156,88 @@ void language_execute(Language* language) {
     // TODO: now add variables grammar and them create a few and print a few
 }
 
+void language_execute_statement(Language* language, Stmt* stmt) {
+    switch (stmt->type) {
+        case Stmt_type_expr: {
+            Expr* expr      = stmt->union_.stmt_expr.expr;
+            Evaluation eval = language_evaluate_expression(language, expr);
+            evaluation_print(&eval);
 
+            break;
+        }
+
+        case Stmt_type_print: {
+            Expr* expr      = stmt->union_.print.expr;
+            Evaluation eval = language_evaluate_expression(language, expr);
+            printf("Print: \"");
+            evaluation_print(&eval);
+            printf("\"");
+            printf("\n");
+
+            break;
+        }
+
+        case Stmt_type_declaration: {
+            // TODO: why do i have a token here ef i create a string inside the primary var decalration thingy
+            Token name_token  = stmt->union_.var_decl.var_name;
+            
+            char* name_buffer = malloc(sizeof(char) * name_token.length);
+            if (name_buffer == NULL) {
+                printf("Wasnt able to create a dynamic char array, no memory. \n");
+                exit(1);
+            } 
+            
+            for (int i=0; i<name_token.length; ++i) {
+                name_buffer[i] = name_token.lexeme[i];
+            }
+            String name_as_str = string_init("");
+            string_add_c_string(&name_as_str, name_buffer, name_token.length);
+            free(name_buffer);
+            
+            Evaluation eval;
+            if (stmt->union_.var_decl.init_expr == NULL) { // No assigment
+                eval = (Evaluation) {.type = Evaluation_type_absent, .union_.integer = 0}; /* the = 0 is a palceholder*/
+            }   
+            else {
+                eval = language_evaluate_expression(language, stmt->union_.var_decl.init_expr);
+            }
+            
+            int err = map_variables_add(&language->map_variables, name_as_str, eval);
+            if (err == -1 ) {
+                printf(
+                    "Error: Redefenition of a variable '%s', col: %d, row: %d.\n", 
+                    name_as_str.str,
+                    name_token.column,
+                    name_token.line
+                );
+                exit(1);
+            }
+
+            printf("Declared ("); 
+            printf("%s", name_as_str.str);
+            printf(": "); 
+            if(eval.type == Evaluation_type_integer) printf("int");
+            else if(eval.type == Evaluation_type_boolean) printf("bool");
+            else if(eval.type == Evaluation_type_absent)  printf("Un Initialised");
+            else printf("Unsupported eval type for printing");
+            printf(")\n");
+
+            break;
+        }
+
+        default: {
+            printf("Was not able to execute a statement. Statement type is unsupported. \n");
+            printf("\tStatement: ");
+            //String expr_as_str = expr_to_string(stmt->union_.);
+            // string_print(&expr_as_str);
+            printf("\n");
+            exit(1);
+        }
+
+    }
+} 
+
+// Given an expression, manually evaluates it
 Evaluation language_evaluate_expression(Language* language, Expr* expr) {
     switch (expr->type) {
         case Expr_type_primary: {
@@ -368,95 +456,6 @@ Evaluation language_evaluate_expression(Language* language, Expr* expr) {
         }
     }
 }
-
-void language_execute_statement(Language* language, Stmt* stmt) {
-    switch (stmt->type) {
-        case Stmt_type_expr: {
-            Expr* expr      = stmt->union_.stmt_expr.expr;
-            Evaluation eval = language_evaluate_expression(language, expr);
-            evaluation_print(&eval);
-            //printf("Evaluated, TODO: add switch statement to evaluation \n");
-
-            break;
-        }
-
-        case Stmt_type_print: {
-            Expr* expr      = stmt->union_.print.expr;
-            Evaluation eval = language_evaluate_expression(language, expr);
-            switch (eval.type) {
-                case Evaluation_type_integer: {
-                    printf("%d", eval.union_.integer);
-                    printf("\n");
-                    break;
-                }
-
-                case Evaluation_type_boolean: {
-                    if (eval.union_.boolean == true) 
-                        printf("true");
-                    else 
-                        printf("false");
-
-                    printf("\n");
-                    
-                    break;
-                }
-
-                case Evaluation_type_absent: {
-                    printf("Error, was trying to print an uninitialised varaible. \n");
-                    exit(1);
-                }
-
-                default: {
-                    printf("Got an unexpected evaluation type inside \"language_execute_stmt\". \n");
-                    exit(1);
-                }
-
-            }
-            break;
-        }
-
-        case Stmt_type_declaration: {
-            // TODO: why do i have a token here ef i create a string inside the primary var decalration thingy
-            Token name_token  = stmt->union_.var_decl.var_name;
-            
-            char* name_buffer = malloc(sizeof(char) * name_token.length);
-            if (name_buffer == NULL) {
-                printf("Wasnt able to create a dynamic char array, no memory. \n");
-                exit(1);
-            } 
-            
-            for (int i=0; i<name_token.length; ++i) {
-                name_buffer[i] = name_token.lexeme[i];
-            }
-            String name_as_str = string_init("");
-            string_add_c_string(&name_as_str, name_buffer, name_token.length);
-            free(name_buffer);
-            
-            Evaluation eval;
-            if (stmt->union_.var_decl.init_expr == NULL) { // No assigment
-                eval = (Evaluation) {.type = Evaluation_type_absent, .union_.integer = 0}; /* the = 0 is a palceholder*/
-            }   
-            else {
-                eval = language_evaluate_expression(language, stmt->union_.var_decl.init_expr);
-            }
-            map_variables_add(&language->map_variables, name_as_str, eval);
-
-            break;
-        }
-
-        default: {
-            printf("Was not able to execute a statement. Statement type is unsupported. \n");
-            printf("\tStatement: ");
-            //String expr_as_str = expr_to_string(stmt->union_.);
-            // string_print(&expr_as_str);
-            printf("\n");
-            exit(1);
-        }
-
-    }
-} 
-
-
 
 
 

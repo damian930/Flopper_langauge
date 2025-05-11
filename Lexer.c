@@ -5,9 +5,11 @@
 
 Lexer lexer_init(const char *text) {
     Lexer lexer = {
-        .text = text,
+        .text            = text,
         .token_start_idx = 0,
-        .current_idx = 0,
+        .current_idx     = 0,
+        .column          = 1,
+        .line            = 1,
     };
 
     return lexer;
@@ -27,11 +29,19 @@ char lexer_peek_next_char(const Lexer *lexer) {
 char lexer_consume_char(Lexer *lexer) {
     if (lexer_is_at_end(lexer))
         return '\0';
-    else
-    {
-        // Line and column code positions will be changed here
-        // since this is the only function that consumes chars
-        return lexer->text[lexer->current_idx++];
+    else {
+        // Indentation
+        char current_char = lexer->text[lexer->current_idx];
+        if (current_char == '\n') {
+            lexer->column += 1;
+            lexer->line    = 1;
+        }
+        else {
+            lexer->line += 1;
+        }
+
+        lexer->current_idx += 1;
+        return current_char;
     }
 }
 
@@ -53,8 +63,14 @@ Token lexer_next_token(Lexer *lexer) {
         return lexer_init_token(lexer, (int)'(');
     case ')':
         return lexer_init_token(lexer, (int)')');
-    case ':':
-        return lexer_init_token(lexer, (int) ':');
+    case ':': {
+        if (lexer_peek_next_char(lexer) == (int) '=') {
+            lexer_consume_char(lexer);
+            return lexer_init_token(lexer, Token_Type_Declaration_Auto);
+        }
+        else
+            return lexer_init_token(lexer, (int) ':');
+    }
     case '+':
         return lexer_init_token(lexer, (int)'+');
     case '-':
@@ -120,8 +136,8 @@ Token lexer_next_token(Lexer *lexer) {
 
 Token lexer_peek_next_token(Lexer* lexer) {
     int token_start_idx = lexer->current_idx;
-    Token token = lexer_next_token(lexer);
-    lexer->current_idx = token_start_idx;
+    Token token         = lexer_next_token(lexer);
+    lexer->current_idx  = token_start_idx;
     return token;
 }
 
@@ -149,7 +165,9 @@ bool lexer_match_token(Lexer* lexer, Token_Type expected_type) {
 Token lexer_consume_token__exits(Lexer* lexer, Token_Type expected_type, const char* error_message) {
     Token token = lexer_next_token(lexer);
     if (token.type != expected_type) {
-        printf("%s", error_message);
+        printf("%s \n",   error_message   );
+        printf("Row: %d \n", lexer->line  );
+        printf("Col: %d \n", lexer->column);
         exit(1);
     }
     return token;
@@ -217,7 +235,7 @@ Token lexer_create_identifier_token(Lexer* lexer) {
 }
 
 Token lexer_match_keyword(Lexer* lexer, int current_token_offset, const char* rest, int rest_len, Token_Type type_to_match) {
-    // Might be out token, need to check
+    // Might be our token, need to check
     if (lexer->token_start_idx + current_token_offset + rest_len == lexer->current_idx) {
         for (int i=0; i<rest_len; ++i) {
             if (lexer->text[lexer->token_start_idx + current_token_offset + i] != rest[i])
@@ -237,16 +255,28 @@ void lexer_skip_whitespaces(Lexer *lexer) {
 }
 
 inline Token lexer_init_token(Lexer *lexer, Token_Type type) {
-    return token_init(type, &lexer->text[lexer->token_start_idx], lexer->current_idx - lexer->token_start_idx);
+    Token token = token_init(
+        type, 
+        &lexer->text[lexer->token_start_idx], 
+        lexer ->current_idx - lexer->token_start_idx,
+        lexer->column,
+        lexer->line
+    );
+    // Manually skipping whitespaces here, so the next token is a legit token
+    lexer_skip_whitespaces(lexer); 
+    return token;
 }
 
 
 
-Token token_init(Token_Type type, char *lexeme, int length) {
+Token token_init(Token_Type type, char *lexeme, int length, int col, int row) {
     Token token = {
-        .type = type,
+        .type   = type,
         .lexeme = lexeme,
-        .length = length};
+        .length = length,
+        .column = col,
+        .line   = row,
+    };
 
     return token;
 }
@@ -265,4 +295,10 @@ void token_print(Token *token) {
 
 
 
-// Ctrl + K Ctrl + 0
+// Ctrl + K + Ctrl + 0: fold all levels (namespace, class, method, and block)
+// Ctrl + K + Ctrl + 1: namespace / @Component(For Angular)
+// Ctrl + K + Ctrl + 2: class / methods
+// Ctrl + K + Ctrl + 3: methods / blocks
+// Ctrl + K + Ctrl + 4: blocks / inner blocks
+// Ctrl + K + Ctrl + [ or Ctrl + k + ]: current cursor block
+// Ctrl + K + Ctrl + j: UnFold

@@ -28,12 +28,12 @@ int main() {
 	Language flopper = language_init(code.str);
 	language_execute(&flopper);
 
-	// printf("\n --> DONE <-- \n");
-	//Lexer lexer = lexer_init(code.str);
-	//while (!lexer_is_at_end(&lexer)) {
-	//	Token token = lexer_next_token(&lexer);
-	//	token_print(&token);
-	//}
+	//printf("\n --> DONE <-- \n");
+	/*Lexer lexer = lexer_init(code.str);
+	while (!lexer_is_at_end(&lexer)) {
+		Token token = lexer_next_token(&lexer);
+		token_print(&token);
+	}*/
 
 
 	return 0;

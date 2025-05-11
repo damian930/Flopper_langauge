@@ -24,9 +24,9 @@ struct Map_variables {
 Map_variables map_variables_init();
 void map_variables_delete(Map_variables* map);
 
-int map_variables_hash(String name);
-void map_variables_add(Map_variables* map, String name, Evaluation value);
-Variable map_variables_get(Map_variables* map, String name);
+int      map_variables_hash(String name);
+int      map_variables_add (Map_variables* map, String name, Evaluation value);
+Variable map_variables_get (Map_variables* map, String name);
 
 // ================================================================================
 

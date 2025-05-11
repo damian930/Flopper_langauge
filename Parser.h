@@ -19,7 +19,7 @@ typedef struct Stmt    Stmt;
 // ==================================
 
 // ==================================
-typedef enum Evaluation_type Evaluation_type; // TODO: change the name, make is smaller
+typedef enum Evaluation_type Evaluation_type; 
 typedef struct Evaluation Evaluation; 
 // ==================================
 
@@ -29,6 +29,7 @@ typedef struct Parser     Parser;
 // ==================================
 
 // ========================================================================================
+// == Expressions 
 
 enum Expr_type {
     Expr_type_primary,
@@ -39,7 +40,8 @@ enum Expr_type {
 struct Primary {
     Token_Type type;
     union {
-        int integer;
+        // NOTE: These are the supported default types for now
+        int  integer;
         bool boolean;
         // char* string;
 
@@ -48,7 +50,7 @@ struct Primary {
 };
 
 struct Unary {
-    Token operator;
+    Token operator; // Token is here intesd of Token_Type as in Primary for error printing with column and line info
     Expr* right;
 };
 
@@ -62,29 +64,29 @@ struct Expr {
     Expr_type type;
     union {
         Primary primary;
-        Unary unary;
-        Binary binary;
+        Unary   unary;
+        Binary  binary;
     } union_;
 } ;
 
-Expr* primary(Lexer* lexer);
-Expr* unary(Lexer* lexer);
-Expr* factor(Lexer* lexer);
-Expr* term(Lexer* lexer);
+Expr* primary   (Lexer* lexer);
+Expr* unary     (Lexer* lexer);
+Expr* factor    (Lexer* lexer);
+Expr* term      (Lexer* lexer);
 Expr* comparison(Lexer* lexer);
-Expr* equality(Lexer* lexer);
+Expr* equality  (Lexer* lexer);
 Expr* expression(Lexer* lexer);
 
-// void epxr_delete(Expr* expr);   // TODO: need to delete it from heap
+void   epxr_delete   (Expr* expr);   
 String expr_to_string(Expr* expr); // For debugging
 
 
 // ========================================================================================
+// == Statement 
 
-// TODO: why do i have 2 forawrd declarations, up top and here
-typedef enum   Stmt_type            Stmt_type; 
-typedef struct Stmt_expr            Stmt_expr;
-typedef struct Stmt_print           Stmt_print; 
+typedef enum   Stmt_type      Stmt_type; 
+typedef struct Stmt_expr      Stmt_expr;
+typedef struct Stmt_print     Stmt_print; 
 typedef struct Stmt_var_decl  Stmt_var_decl; 
 
 
@@ -110,26 +112,31 @@ struct Stmt_var_decl {
 struct Stmt {
     Stmt_type type;
     union {
-        Stmt_expr  stmt_expr;
-        Stmt_print print;
+        Stmt_expr     stmt_expr;
+        Stmt_print    print;
         Stmt_var_decl var_decl;
     } union_;
 };
 
-Stmt print_stmt(Lexer* lexer);
+Stmt print_stmt     (Lexer* lexer);
 Stmt expression_stmt(Lexer* lexer);
-Stmt statement(Lexer* lexer);
+Stmt statement      (Lexer* lexer);
 Stmt var_declaration(Lexer* lexer);
-Stmt declaration(Lexer* lexer);
-Stmt program(Lexer* lexer);
+Stmt declaration    (Lexer* lexer);
+Stmt program        (Lexer* lexer);
+
+void   stmt_delete   (Stmt* stmt);   
+String stmt_to_string(Stmt* stmt); // For debugging
 
 
 // ========================================================================================
+// == Evaluation - wrapper over all primitive types to then return when executing 
 
 typedef enum {
     Evaluation_type_integer,
     Evaluation_type_boolean,
-    Evaluation_type_absent,
+    Evaluation_type_absent,  // NOTE: absent return from variables hash map, 
+                             //       to then be handled at execution level.
 } Evaluation_type;
 
 struct Evaluation {
@@ -139,10 +146,11 @@ struct Evaluation {
         bool boolean;
     } union_;
 };
-void evaluation_print(Evaluation* eval);
+void evaluation_print(Evaluation* eval); // For debugging
 
 
 // ========================================================================================
+// == Parser
 
 struct Parser {
     Lexer lexer;
@@ -150,9 +158,10 @@ struct Parser {
     bool  had_error;
 };
 
-Parser parser_init(const char* text); // NOTE: create its own Lexer
-void   parser_parse(Parser* parser);
-// TODO: RALLY need a delete function for parser
+Parser parser_init  (const char* text); // NOTE: create its own Lexer
+void   parser_parse (Parser* parser);
+void   parser_delete(Parser* parser);
+
 
 
 

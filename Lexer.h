@@ -6,8 +6,8 @@ typedef struct {
     int token_start_idx;
     int current_idx;
 
-    // int column;
-    // int line;
+int column;
+    int line;
 } Lexer;
 
 typedef enum {
@@ -28,9 +28,11 @@ typedef enum {
 
     Token_Type_Identifier,
 
+    Token_Type_Declaration_Auto,
+
     Token_Type_Print,
 
-    Token_Type_Illegal,
+    // Token_Type_Illegal, 
     Token_Type_EOF
 } Token_Type;
 
@@ -39,8 +41,8 @@ typedef struct {
     char *lexeme;
     int length;
 
-    // int column;
-    // int line
+    int column;
+    int line;
 
 } Token;
 
@@ -63,6 +65,6 @@ Token lexer_create_identifier_token(Lexer* lexer);
 Token lexer_match_keyword(Lexer* lexer, int current_token_offset, const char* rest, int rest_len, Token_Type type_to_match);
 void  lexer_skip_whitespaces(Lexer *lexer);
 
-Token token_init(Token_Type type, char *lexeme, int length);
+Token token_init(Token_Type type, char *lexeme, int length, int col, int row);
 void token_print(Token *token);
 

@@ -5,7 +5,29 @@
 #include "my_String.h"
 #include "Array.h"
 
-// Expr grammar below
+// ========================================================================================
+// == Grammar:
+//      program         :: declaration*                                     
+//      declaration     :: var_declaration | statement
+//
+//      var_declaration :: IDENTIFIER ":" IDENTIFIER (= expression)? ";"   <---                            
+//      statement       :: expression_stmt | print_stmt             
+//      expression_stmt :: expression ";"                          
+//      print_stmt      :: "print" expression ";"                   
+//
+//      expression :: equality 
+//      equality   :: and_or ( ( "!=" | "==" ) and_or )*                
+//      and_or     :: comparison ( ( "and" | "or" )  comparison )*  
+//      comparison :: term ( ( ">" | ">=" | "<" | "<=" ) term )* 
+//      term       :: factor ( ( "-" | "+" ) factor )* 
+//      factor     :: unary ( ( "/" | "*" ) unary )* 
+//      unary      :: ( "!" | "-" ) unary
+//                    | primary 
+//      primary    :: INTEGER | BOOLEAN | "(" expression ")" 
+// ========================================================================================
+
+// ========================================================================================
+// == Expression grammar below
 
 Expr* primary(Lexer* lexer) {
     Token token = lexer_next_token(lexer);
@@ -21,52 +43,57 @@ Expr* primary(Lexer* lexer) {
     }
     
     Primary* primary = NULL;
+    switch (token.type) {
+        case Token_Type_Integer: {
+            int int_value = atoi(token.lexeme);
+            primary = &(Primary) {
+                .type           = Token_Type_Integer,
+                .union_.integer = int_value,
+            };
+            break;
+        }
 
-    if (token.type == Token_Type_Integer) {
-        int int_value = atoi(token.lexeme);
-        primary = &(Primary) {
-            .type = Token_Type_Integer,
-            .union_.integer = int_value,
-        };
-    }
+        case Token_Type_True: {
+            primary = &(Primary) {
+                .type           = Token_Type_True,
+                .union_.boolean = true,
+            };
+            break;
+        }
 
-    if (token.type == Token_Type_True) {
-        primary = &(Primary) {
-            .type = Token_Type_True,
-            .union_.boolean = true,
-        };
-    }
+        case Token_Type_False: {
+            primary = &(Primary) {
+                .type = Token_Type_False,
+                .union_.boolean = false,
+            };
+            break;
+        }
 
-    if (token.type == Token_Type_False) {
-        primary = &(Primary) {
-            .type = Token_Type_True,
-            .union_.boolean = false,
-        };
-    }
+        case Token_Type_Identifier: {
+            // TODO: check if i even need malloc here. i kanda do, but if the lifetypes of the source code and this are the same and i am fine not allocating this.
+            char* name = malloc(sizeof(char) * token.length);
+            if (name == NULL) {
+                printf("Wasnt able to initialise a string due to lack of memory. \n");
+                exit(1);
+            }
+            for (int i=0; i<token.length; ++i) {
+                name[i] = token.lexeme[i];
+            }
+            String identifier = string_init("");
+            string_add_c_string(&identifier, name, token.length);
+            free(name);
 
-    if (token.type == Token_Type_Identifier) {
-        // TODO: check if i even need malloc here. i kanda do, but if the lifetypes of the source code and this are the same and i am fine not allocating this.
-        char* name = malloc(sizeof(char) * token.length);
-        if (name == NULL) {
-            printf("Wasnt able to initialise a string due to lack of memory. \n");
+            primary = &(Primary) {
+                .type              = Token_Type_Identifier,
+                .union_.identifier = identifier,
+            };
+            break;
+        }
+
+        default: {
+            printf("Either was expecting an expression or was not able to parse the primary expr. Not yet supported. \n");
             exit(1);
         }
-        for (int i=0; i<token.length; ++i) {
-            name[i] = token.lexeme[i];
-        }
-        String identifier = string_init("");
-        string_add_c_string(&identifier, name, token.length);
-        free(name);
-
-        primary = &(Primary) {
-            .type = Token_Type_Identifier,
-            .union_.identifier = identifier,
-        };
-    }
-
-    if (primary == NULL) {
-        printf("Was not able to parse the primary expr. Not yet supported. \n");
-        exit(1);
     }
 
     Expr* expr = malloc(sizeof(Expr));
@@ -76,14 +103,18 @@ Expr* primary(Lexer* lexer) {
     }
 
     *expr = (Expr) {
-        .type = Expr_type_primary,
+        .type           = Expr_type_primary,
         .union_.primary = *primary,
     };
     return expr;
 }
 
 Expr* unary(Lexer* lexer) {
-    if (lexer_peek_next_token(lexer).type == (int) '-') {
+    Token next_token = lexer_peek_next_token(lexer);
+    if (
+        next_token.type == (int) '-' ||
+        next_token.type == (int) '!'
+    ) {
         Token operator = lexer_next_token(lexer);
         Expr* right    = unary(lexer);
 
@@ -95,27 +126,7 @@ Expr* unary(Lexer* lexer) {
 
         *expr = (Expr) {
             .type         = Expr_type_unary, 
-            .union_.unary = {
-                .operator = operator,
-                .right    = right,
-            },
-        };
-        return expr;
-    }
-
-    if (lexer_peek_next_token(lexer).type == (int) '!') {
-        Token operator = lexer_next_token(lexer);
-        Expr* right    = unary(lexer);
-
-        Expr* expr = malloc(sizeof(Expr));
-        if (expr == NULL) {
-            printf("Was not able to initialise expr, ran out of memory. \n");
-            exit(1);
-        }
-
-        *expr = (Expr) {
-            .type         = Expr_type_unary, 
-            .union_.unary = {
+            .union_.unary = (Unary) {
                 .operator = operator,
                 .right    = right,
             },
@@ -130,10 +141,10 @@ Expr* factor(Lexer* lexer) {
     Expr* left = unary(lexer);
 
     while (true) {
-        Token next_token = lexer_peek_next_token(lexer);
+        Token next_token    = lexer_peek_next_token(lexer);
         if (next_token.type == (int) '*' || next_token.type == (int) '/') {
-            Token operator = lexer_next_token(lexer);
-            Expr* right    = unary(lexer);
+            Token operator  = lexer_next_token(lexer);
+            Expr* right     = unary(lexer);
 
             Expr* new_expr = malloc(sizeof(Expr));
             if (new_expr == NULL) {
@@ -143,10 +154,10 @@ Expr* factor(Lexer* lexer) {
 
             *new_expr = (Expr) {
                 .type = Expr_type_binary,
-                .union_.binary = {
-                    .operator = operator,
-                    .left     = left,
-                    .right    = right,
+                .union_.binary = (Binary) {
+                    .operator  = operator,
+                    .left      = left,
+                    .right     = right,
                 },
             };
             left = new_expr;
@@ -154,7 +165,6 @@ Expr* factor(Lexer* lexer) {
         else {
             break;
         }
-
     }   
 
     return left;
@@ -164,10 +174,10 @@ Expr* term(Lexer* lexer) {
     Expr* left = factor(lexer);
 
     while (true) {
-        Token next_token = lexer_peek_next_token(lexer);
+        Token next_token     = lexer_peek_next_token(lexer);
         if (next_token.type == (int) '+' || next_token.type == (int) '-') {
-            Token operator = lexer_next_token(lexer);
-            Expr* right    = factor(lexer);
+            Token operator   = lexer_next_token(lexer);
+            Expr* right      = factor(lexer);
 
             Expr* new_expr = malloc(sizeof(Expr));
             if (new_expr == NULL) {
@@ -177,10 +187,10 @@ Expr* term(Lexer* lexer) {
 
             *new_expr = (Expr) {
                 .type = Expr_type_binary,
-                .union_.binary = {
-                    .operator = operator,
-                    .left     = left,
-                    .right    = right,
+                .union_.binary = (Binary) {
+                    .operator  = operator,
+                    .left      = left,
+                    .right     = right,
                 },
             };
             left = new_expr;
@@ -207,17 +217,17 @@ Expr* comparison(Lexer* lexer) {
             Expr* right    = term(lexer);
 
             Expr* new_expr = malloc(sizeof(Expr));
-            if (new_expr == NULL) {
+            if (new_expr  == NULL) {
                 printf("Was not able to allocated expr on heap. \n");
                 exit(1);
             }
 
             *new_expr = (Expr) {
                 .type = Expr_type_binary,
-                .union_.binary = {
-                    .operator = operator,
-                    .left     = left,
-                    .right    = right,
+                .union_.binary = (Binary) {
+                    .operator  = operator,
+                    .left      = left,
+                    .right     = right,
                 },
             };
             left = new_expr;
@@ -243,17 +253,17 @@ Expr* and_or(Lexer* lexer) {
             Expr* right    = comparison(lexer);
 
             Expr* new_expr = malloc(sizeof(Expr));
-            if (new_expr == NULL) {
+            if (new_expr  == NULL) {
                 printf("Was not able to allocated expr on heap. \n");
                 exit(1);
             }
 
             *new_expr = (Expr) {
-                .type = Expr_type_binary,
-                .union_.binary = {
-                    .operator = operator,
-                    .left     = left,
-                    .right    = right,
+                .type = Expr_type_binary, 
+                .union_.binary = (Binary) {
+                    .operator  = operator,
+                    .left      = left,
+                    .right     = right,
                 },
             };
             left = new_expr;
@@ -278,17 +288,17 @@ Expr* equality(Lexer* lexer) {
             Expr* right    = and_or(lexer);
 
             Expr* new_expr = malloc(sizeof(Expr));
-            if (new_expr == NULL) {
+            if (new_expr  == NULL) {
                 printf("Was not able to allocated expr on heap. \n");
                 exit(1);
             }
             
             *new_expr = (Expr) {
                 .type = Expr_type_binary,
-                .union_.binary = {
-                    .operator = operator,
-                    .left     = left,
-                    .right    = right,
+                .union_.binary = (Binary) {
+                    .operator  = operator,
+                    .left      = left,
+                    .right     = right,
                 },
             };
             left = new_expr;
@@ -305,74 +315,26 @@ Expr* expression(Lexer* lexer) {
     return equality(lexer);
 }
 
+void expr_delete(Expr* expr) {
+    if (expr->type == Expr_type_primary) return;
 
-// Stmt grammar below
-
-Stmt print_stmt(Lexer* lexer) {
-    // "print" was alredy consumed by the caller
-    Expr* expr = expression(lexer);
-    lexer_consume_token__exits(lexer, (int) ';', "Invalid syntax, was expecting ';' at the end of expression");
-    return (Stmt) {
-        .type = Stmt_type_print,
-        .union_.print.expr = expr,
-    };
-}
-
-Stmt expression_stmt(Lexer* lexer) {
-    Expr* expr = expression(lexer);
-    lexer_consume_token__exits(lexer, (int) ';', "Invalid syntax, was expecting ';' at the end of expression");
-    return (Stmt) {
-        .type = Stmt_type_expr,
-        .union_.stmt_expr.expr = expr, // TODO:fix the 3x expression in a row
-    };
-}
-
-Stmt statement(Lexer* lexer) {
-    if (lexer_peek_next_token(lexer).type == Token_Type_Print) {
-        lexer_next_token(lexer);
-        return print_stmt(lexer);
+    if (expr->type == Expr_type_unary) {
+        expr_delete(expr->union_.unary.right); // Delete the child expr
+        
+        free(expr->union_.unary.right);
+        return;
     }
 
-    return expression_stmt(lexer);
-}
-
-Stmt var_declaration(Lexer* lexer) {
-    Token var_name = lexer_consume_token__exits(lexer, Token_Type_Identifier, "Was expecting an identifier for variable name. \n");
-    lexer_consume_token__exits(lexer, (int) ':', "Was expecting a type specifier ':' after a variable declaraion. \n");
-    Token var_type = lexer_consume_token__exits(lexer, Token_Type_Identifier, "Was expecting an identifier of the type specification for variable creation. \n");
-
-    Expr* r_value_epxr = NULL;
-    if (lexer_peek_next_token(lexer).type == (int) '=') {
-        lexer_next_token(lexer);
-        r_value_epxr = expression(lexer);
+    if (expr->type == Expr_type_binary) {
+        expr_delete(expr->union_.binary.left ); // Delete the child expr
+        expr_delete(expr->union_.binary.right); // Delete the child expr
+        
+        free(expr->union_.binary.left );
+        free(expr->union_.binary.right);
+        return;
     }
-    lexer_consume_token__exits(lexer, (int)';', "Was expecting a ';' for the end of a statement, but wasnt found. \n");
-
-
-    return (Stmt) {
-        .type = Stmt_type_declaration,
-        .union_.var_decl = (Stmt_var_decl) {
-            .var_name  = var_name,
-            .init_expr = r_value_epxr, 
-        },
-    };
-
+    
 }
-
-Stmt declaration(Lexer* lexer) {
-    if (lexer_peek_n_token(lexer, 1).type == Token_Type_Identifier &&
-        lexer_peek_n_token(lexer, 2).type == (int) ':')
-        return var_declaration(lexer);
-    else 
-        return statement(lexer);
-}
-
-Stmt program(Lexer* lexer) {
-    return declaration(lexer);
-}
-
-
-// TODO: delete the dynamic AST tree
 
 String expr_to_string(Expr* expr) {
     String str = string_init("");
@@ -387,8 +349,8 @@ String expr_to_string(Expr* expr) {
                     string_add_whole_c_string(&str, "(integer -> ");
                     string_add_whole_c_string(&str, int_as_str);
                     string_add_whole_c_string(&str, ")");
-                    
-                    break;
+                                        
+                    return str;
                 }
 
                 case Token_Type_True: 
@@ -399,33 +361,23 @@ String expr_to_string(Expr* expr) {
                     string_add_whole_c_string(&str, bool_as_str);
                     string_add_whole_c_string(&str, ")");
                     
-                    break;
+                    return str;
                 }
 
-                // case Token_Type_String: {
-                //     string_add_c_string(&str, "(string -> ");
-                //     string_add_c_string(&str, expr->union_.primary.union_.string);
-                //     string_add_c_string(&str, ")");
+                case Token_Type_Identifier: {
+                    printf("", expr->union_.primary.union_.identifier.str);
+                    string_add_whole_c_string(&str, "Identifier: ");
+                    string_add_whole_c_string(&str, expr->union_.primary.union_.identifier.str);
 
-                //     break;
-                // }
+                    break;
 
-                // case Token_Type_Double: {
-                //     char double_as_str[30]; 
-                //     sprintf_s(double_as_str, 30, "%.3lf", expr->union_.primary.union_.double_);
-                //     string_add_c_string(&str, "(double -> ");
-                //     string_add_c_string(&str, double_as_str);
-                //     string_add_c_string(&str, ")");
-                    
-                //     break;
-                // }
+                }
 
                 default: {
                     printf("Was not able to create a string for a primary expr,");
-                    printf("cause the primary expr type is not supported. \n");
+                    printf("cause the primary expr type is not supported for string creation. \n");
                     exit(1);
 
-                    break;
                 }
             }
 
@@ -455,28 +407,27 @@ String expr_to_string(Expr* expr) {
                 
                     string_delete(&child_expr_str);
                     free(operator_str);
-                    break;
+                    return str;
+
                 }
 
                 default: {
                     printf("Was not able to create a string for a unary expr,");
-                    printf("cause the unary operator type is not supported. ");
+                    printf("cause the unary operator type is not supported for string creation. ");
                     printf("Operator: %c. \n", expr->union_.unary.operator.type);
                     exit(1);
 
-                    break;
                 }
                 
             }
 
-            break;
         }
 
         case Expr_type_binary: {
-            Expr* child_left_expr = expr->union_.binary.left;
+            Expr* child_left_expr  = expr->union_.binary.left;
             Expr* child_right_expr = expr->union_.binary.right;
 
-            String child_left_expr_str = expr_to_string(child_left_expr);
+            String child_left_expr_str  = expr_to_string(child_left_expr);
             String child_right_expr_str = expr_to_string(child_right_expr);
 
             char* operator;
@@ -497,7 +448,7 @@ String expr_to_string(Expr* expr) {
 
                 default: {
                     printf("Was not able to create a string for a binary expr,");
-                    printf("cause the binary operator type is not supported. ");
+                    printf("cause the binary operator type is not supported for string creation. ");
                     printf("Operator: %c. \n", expr->union_.binary.operator.type);
                     exit(1);
 
@@ -507,58 +458,195 @@ String expr_to_string(Expr* expr) {
 
             string_add_whole_c_string(&str, "[");
             string_add_whole_c_string(&str, operator);
-            string_add_whole_c_string(&str, &child_left_expr_str);
-            string_add_whole_c_string(&str, &child_right_expr_str);
+            string_add_whole_c_string(&str, child_left_expr_str.str);
+            string_add_whole_c_string(&str, child_right_expr_str.str);
             string_add_whole_c_string(&str, "]");
 
             string_delete(&child_right_expr_str);
             string_delete(&child_left_expr_str);
-            
-            break;
+
+            return str;
+
         }
 
         default: {
-            printf("Was not able to create a string, cause the expr type is not supported. \n");
+            printf("Was not able to create a string, cause the expr type is not supported for string creation. \n");
             exit(1);
 
-            break;
         }
     }
 
     return str;
 }
 
+
+// ========================================================================================
+// == Expression grammar below
+
+Stmt print_stmt(Lexer* lexer) {
+    // "print" was alredy consumed by the caller
+    Expr* expr = expression(lexer);
+    lexer_consume_token__exits(lexer, (int) ';', "Invalid syntax, was expecting ';' at the end of expression");
+    return (Stmt) {
+        .type              = Stmt_type_print,
+        .union_.print.expr = expr,
+    };
+}
+
+Stmt expression_stmt(Lexer* lexer) {
+    Expr* expr = expression(lexer);
+    lexer_consume_token__exits(lexer, (int) ';', "Invalid syntax, was expecting ';' at the end of expression");
+    return (Stmt) {
+        .type                  = Stmt_type_expr,
+        .union_.stmt_expr.expr = expr, 
+    };
+}
+
+Stmt statement(Lexer* lexer) {
+    if (lexer_peek_next_token(lexer).type == Token_Type_Print) {
+        lexer_next_token(lexer); // NOTE: doing this here to now then check if it the correct token there
+        return print_stmt(lexer);
+    }
+
+    return expression_stmt(lexer);
+}
+
+Stmt var_declaration_auto(Lexer* lexer) {
+    Token var_name   = lexer_consume_token__exits(lexer, Token_Type_Identifier,       "Was expecting an identifier for variable name. \n");
+    Token ________   = lexer_consume_token__exits(lexer, Token_Type_Declaration_Auto, "BACK_END_ERR: Was expecting a type specifier ':=' for var_declaration_auto.  \n"); // This is the lang back end error, and not Flopper source code error
+    Expr* r_val_expr = expression(lexer);
+    lexer_consume_token__exits(lexer, (int)';', "Was expecting a ';' for the end of a statement, but wasnt found. \n");
+
+    // NOTE: type of the r_value is figured out by expression(Lexer* lexer) when creating a primary expression
+    return (Stmt) {
+        .type = Stmt_type_declaration,
+        .union_.var_decl = (Stmt_var_decl) {
+            .var_name    = var_name,
+            .init_expr   = r_val_expr, 
+        },
+    };
+}
+
+Stmt var_declaration(Lexer* lexer) {
+    Token var_name = lexer_consume_token__exits(lexer, Token_Type_Identifier, "Was expecting an identifier for variable name. \n");
+    Token ________ = lexer_consume_token__exits(lexer, (int) ':'            , "Was expecting a type specifier ':' after a variable declaraion. \n");
+    Token var_type = lexer_consume_token__exits(lexer, Token_Type_Identifier, "Was expecting an identifier of the type specification for variable creation. \n");
+
+    Expr* r_value_epxr = NULL;
+
+    if (lexer_match_token(lexer, (int) '=')) {
+        r_value_epxr = expression(lexer);
+    }
+    lexer_consume_token__exits(lexer, (int)';', "Was expecting a ';' for the end of a statement, but wasnt found. \n");
+
+    return (Stmt) {
+        .type = Stmt_type_declaration,
+        .union_.var_decl = (Stmt_var_decl) {
+            .var_name    = var_name,
+            .init_expr   = r_value_epxr, 
+        },
+    };
+
+}
+
+Stmt declaration(Lexer* lexer) {
+    if (   lexer_peek_n_token(lexer, 1).type == Token_Type_Identifier 
+        && lexer_peek_n_token(lexer, 2).type == (int) ':'
+    ) {
+        return var_declaration(lexer);
+    }
+    else if (
+           lexer_peek_n_token(lexer, 1).type == Token_Type_Identifier
+        && lexer_peek_n_token(lexer, 2).type == Token_Type_Declaration_Auto
+    ) {
+        return var_declaration_auto(lexer);
+    }
+    else 
+        return statement(lexer);
+
+}
+
+Stmt program(Lexer* lexer) {
+    return declaration(lexer);
+}
+
+// TODO: check if i have to switch over what type to delete.
+//       might be able to just delte regardless since Expr is a dynamic union.
+void stmt_delete(Stmt* stmt) {
+    switch (stmt->type) {
+        case Stmt_type_expr: {
+            expr_delete(&stmt->union_.stmt_expr);
+            return;
+        }
+
+        case Stmt_type_print: {
+            expr_delete(&stmt->union_.print);
+            return;    
+        }
+    
+        case Stmt_type_declaration: {
+            expr_delete(&stmt->union_.var_decl);
+            return;
+        }
+
+        default: {
+            printf("Was not able to delete a statement, statement's type is not supported for deletion. \n");
+            exit(1);
+        }
+    }
+
+}
+
 String stmt_to_string(Stmt* stmt) {
     switch (stmt->type) {
-        case Stmt_type_expr       : { return expr_to_string(&stmt->union_.stmt_expr); }
-        case Stmt_type_print      : { return expr_to_string(&stmt->union_.print    ); }
-        case Stmt_type_declaration: { return expr_to_string(&stmt->union_.var_decl ); }
+        case Stmt_type_expr       : { return expr_to_string(stmt->union_.stmt_expr.expr     ); }
+        case Stmt_type_print      : { return expr_to_string(stmt->union_.print.expr         ); }
+        case Stmt_type_declaration: { return expr_to_string(stmt->union_.var_decl.init_expr ); }
+        default: {
+            printf("Was not able to create a string from a statement.");
+            printf("Statement's type is not supported for string creation. \n");
+            exit(1);
+        }
     }
 }
+
+
+// ========================================================================================
+// == Evaluation
  
 void evaluation_print(Evaluation* eval) {
     switch (eval->type) {
         case Evaluation_type_integer: {
             printf("%d", eval->union_.integer);
+
             break;
         }
+
         case Evaluation_type_boolean: {
-            printf("true" ? eval->union_.boolean == true : "false");
+            if (eval->union_.boolean == true) 
+                printf("true");
+            else 
+                printf("false");
+
             break;
         }
+
         case Evaluation_type_absent: {
-            printf("Was trying to print an absent value for a variable. \n");
+            printf("Error, was trying to print an uninitialised varaible. \n");
             exit(1);
         }
+
         default: {
-            printf("Was trying to print evaluetion of an unsupported type. \n");
+            printf("Got an unexpected evaluation type inside \"language_execute_stmt\". \n");
             exit(1);
         }
     }
+    
 }
 
 
-// Parser below
+// ========================================================================================
+// == Parser
 
 Parser parser_init(const char* text) {
     Lexer lexer    = lexer_init(text);
@@ -569,22 +657,24 @@ Parser parser_init(const char* text) {
 
 void parser_parse(Parser* parser) {
     while(!lexer_is_at_end(&parser->lexer)) {
-        Stmt stmt = program(&parser->lexer);
+        Stmt stmt  = program(&parser->lexer);
+        String str = stmt_to_string(&stmt);
+        printf("Stmt: %s \n", stmt_to_string(&stmt).str);
+
         array_add(&parser->stmt_arr, (void*) &stmt, Array_type_stmt);
-        lexer_skip_whitespaces(&parser->lexer);
+        stmt_delete(&stmt);
     }
-        
-    // TODO: Delete expr inside the STMTs here
 }
 
+void parser_delete(Parser* parser) {
+    // Deleting original data from parser stmt_arr
+    for (int i=0; i<parser->stmt_arr.length; ++i) {
+        Stmt* stmt = ((Stmt*) parser->stmt_arr.arr) + i;
+        stmt_delete(stmt);
+    }
 
-// void parser_evaluate_expr(Parser* parser) {
-//     Expr* expr      = parser->ast;
-//     Evaluation eval = evalueate_expression(expr);
-// }
-
-
-// TODO-LIST: 
-//      -- Delete dynamic Expr from heap.
+    // Deleting the array itself
+    array_delete(&parser->stmt_arr);
+}
 
 
