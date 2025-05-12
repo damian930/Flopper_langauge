@@ -11,6 +11,7 @@ enum Array_type {
     Array_type_tuple__hash_variable,
     Array_type_variable,
     Array_type_map_variables,  // For variable scoping inside Language
+    Array_type_tuple__expr_score,
 };
 int array_get_size_of_arr_type(Array_type type);
 

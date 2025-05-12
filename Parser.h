@@ -21,6 +21,8 @@ typedef struct Stmt_print          Stmt_print;
 typedef struct Stmt_var_decl       Stmt_var_decl; 
 typedef struct Stmt_var_decl_auto  Stmt_var_decl_auto;
 typedef struct Stmt_scope          Stmt_scope;
+typedef struct Tuple__expr_scope   Tuple__expr_scope; 
+typedef struct Stmt_if             Stmt_if;
 // ==================================
 
 // ==================================
@@ -94,6 +96,7 @@ enum Stmt_type {
     Stmt_type_declaration,
     Stmt_type_declaration_auto,
     Stmt_type_scope,
+    Stmt_type_if,
 };
 
 struct Stmt_expr {
@@ -119,6 +122,26 @@ struct Stmt_scope {
     Array statements;
 };
 
+// == Structured needed for Stmt_if to work
+struct Tuple__expr_scope {
+    Expr*      expr;
+    Stmt*      scope;
+};
+// void tuple__expr_scope_delete(Tuple__expr_scope* tuple);
+// ======================================
+
+// TODO: maybe rename the scope to statements, since scope is a statement also
+
+// TODO: hate having Stmt inside Stmt_if as pointers. make the flow of statements way worse
+struct Stmt_if {
+    Expr* main_if_expr;
+    Stmt* main_if_scope;
+
+    Array expr_scope_tuples;     
+    Stmt* else_scope;        // Scope sctruct. It will have a zero length array of statements if not found
+};
+// TODO: dont forget to then delete these dynamic statements
+
 struct Stmt {
     Stmt_type type;
     union {
@@ -127,6 +150,7 @@ struct Stmt {
         Stmt_var_decl      var_decl;
         Stmt_var_decl_auto var_decl_auto;
         Stmt_scope         scope;
+        Stmt_if            if_else;
     } union_;
 };
 

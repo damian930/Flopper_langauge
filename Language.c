@@ -362,6 +362,46 @@ void language_execute_statement(Language* language, Stmt* stmt) {
             break;
         }
 
+        case Stmt_type_if: {
+            Stmt_if if_stmt       = stmt->union_.if_else;
+            bool executed_if_stmt = false; 
+            Evaluation main_expr_eval = language_evaluate_expression(language, if_stmt.main_if_expr);
+            if (main_expr_eval.type == Evaluation_type_boolean) {
+                if (main_expr_eval.union_.boolean == true) {
+                    language_execute_statement(language, if_stmt.main_if_scope);
+                    executed_if_stmt = true;
+                }
+            }
+            else {
+                printf("Was not able to evaluate a condition for and if statement, the value of the condition is not of a boolean type. \n");
+                exit(1);
+            }
+
+            if (!executed_if_stmt) {
+                for (int i=0; i<if_stmt.expr_scope_tuples.length; ++i) {
+                    Tuple__expr_scope* tuple = ((Tuple__expr_scope*) if_stmt.expr_scope_tuples.arr) + i;
+                    
+                    Evaluation else_if_expr_eval = language_evaluate_expression(language, tuple->expr);
+                    if (else_if_expr_eval.type == Evaluation_type_boolean) {
+                        if (else_if_expr_eval.union_.boolean == true) {
+                            language_execute_statement(language, tuple->scope);
+                            executed_if_stmt = true;
+                        }
+                    }
+                    else {
+                        printf("Was not able to evaluate a condition for and else if statement, the value of the condition is not of a boolean type. \n");
+                        exit(1);
+                    }
+                }
+            }
+
+            if (!executed_if_stmt) {
+                language_execute_statement(language, if_stmt.else_scope);
+            }
+
+            break;
+        }
+
         default: {
             printf("Was not able to execute a statement. Statement type is unsupported. \n");
             printf("\tStatement: ");

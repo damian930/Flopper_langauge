@@ -4,12 +4,13 @@
 
 int array_get_size_of_arr_type(Array_type type) {
     switch (type) {
-        case Array_type_int :     { return sizeof(int);      }
-        case Array_type_stmt:     { return sizeof(Stmt);     }
+        case Array_type_int     : { return sizeof(int);      }
+        case Array_type_stmt    : { return sizeof(Stmt);     }
         case Array_type_variable: { return sizeof(Variable); }
         
         case Array_type_tuple__hash_variable: { return sizeof(Tuple__hash_variables); }
-        case Array_type_map_variables:        { return sizeof(Map_variables);         }
+        case Array_type_map_variables       : { return sizeof(Map_variables);         }
+        case Array_type_tuple__expr_score   : { return sizeof(Tuple__expr_scope); }   
 
         default: {
             printf("Was not able to calculate the size of Array_type. Unsupported type. \n");
@@ -96,9 +97,17 @@ void array_add(Array* arr, void* new_value, Array_type value_type) {
         }
 
         case Array_type_map_variables: {
-            Map_variables* scope = (Map_variables*)arr->arr;
-            scope[arr->length]   = *((Map_variables*)new_value);
-            arr->length += 1;
+            Map_variables* scope = (Map_variables*) arr->arr;
+            scope[arr->length]   = *((Map_variables*) new_value);
+            arr->length          += 1;
+
+            break;
+        }
+
+        case Array_type_tuple__expr_score: {
+            Tuple__expr_scope* tuple = (Tuple__expr_scope*) arr->arr;
+            tuple[arr->length]       = *((Tuple__expr_scope*) new_value);
+            arr->length              += 1;
 
             break;
         }

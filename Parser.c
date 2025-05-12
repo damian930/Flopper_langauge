@@ -493,12 +493,7 @@ String expr_to_string(Expr* expr) {
 // == Expression grammar below
 
 Stmt block(Lexer* lexer) {
-    // Enclosing '{' has already been parsed by the called 
-    
-    // 1. Create an array to store statements
-    // 2. Create those statements
-    // 3. Return the array
-
+    // The '{' has already been consumed by the caller
     Array stmt_arr = array_init(Array_type_stmt);   
     while(!lexer_is_at_end(lexer)) {
         if (lexer_peek_next_token(lexer).type == (int) '}')
@@ -606,9 +601,84 @@ Stmt var_declaration(Lexer* lexer) {
 
 }
 
+Stmt if_condition(Lexer* lexer) {
+    // 'if' has alredy been consumed by the caller
+    Expr* main_if_expr  = expression(lexer);
+    lexer_consume_token__exits(lexer, (int)'{', "Was expecting a '{' after if condition. \n");
+    Stmt  main_if_scope = block(lexer);
+
+
+    Array expr_scope_tuples = array_init(Array_type_tuple__expr_score);
+    // Getting else_if statements 
+    while(lexer_peek_n_token(lexer, 1).type == Token_Type_Else &&
+          lexer_peek_n_token(lexer, 2).type == Token_Type_If
+    ) {
+        lexer_consume_token__exits(lexer, Token_Type_Else,   "BACK_END_ERROR: was expecting to cosume 'if' but if wasnt found.   \n");
+        lexer_consume_token__exits(lexer, Token_Type_If, "BACK_END_ERROR: was expecting to cosume 'else' but if wasnt found. \n");
+        
+        Expr* else_if_expr  = expression(lexer);
+
+        lexer_consume_token__exits(lexer, (int)'{', "Was expecting a '{' after if else condition. \n");
+
+        Stmt* else_if_scope = malloc(sizeof(Stmt));
+        if (else_if_scope == NULL) {
+            printf("Error: Was not able to initialise memory. \n");
+            exit(1);
+        }
+        *else_if_scope = block(lexer);
+
+        Tuple__expr_scope* new_tuple = malloc(sizeof(Tuple__expr_scope));
+        if (new_tuple == NULL) {
+            printf("Error: Was not able to initialise memory. \n");
+            exit(1);
+        }
+        *new_tuple = (Tuple__expr_scope) {
+            .expr  = else_if_expr,
+            .scope = else_if_scope,
+        };
+
+        array_add(&expr_scope_tuples, (void*) new_tuple, Array_type_tuple__expr_score);
+    }
+
+    Stmt else_scope;
+    if (lexer_match_token(lexer, Token_Type_Else)) {
+        lexer_consume_token__exits(lexer, (int)'{', "Was expecting a '{' after 'else'. \n");
+        else_scope = block(lexer);
+    }
+    else {
+        else_scope.type                    = Stmt_type_scope;
+        else_scope.union_.scope.statements = array_init(Array_type_stmt);
+    }
+
+    Stmt* main_if_scope_dyn = malloc(sizeof(Stmt)); 
+    Stmt* else_scope_dyn    = malloc(sizeof(Stmt)); 
+    if (main_if_scope_dyn == NULL || else_scope_dyn == NULL) {
+        printf("Error: Was not able to initialise memory. \n");
+        exit(1);
+    }
+
+    *main_if_scope_dyn = main_if_scope;
+    *else_scope_dyn    = else_scope;
+    
+    // Creating the main Stmt_if struct
+    Stmt_if whole_if_stmt = {
+        .main_if_expr      = main_if_expr,
+        .main_if_scope     = main_if_scope_dyn,
+        .expr_scope_tuples = expr_scope_tuples,
+        .else_scope        = else_scope_dyn,
+    };
+
+    return (Stmt) {
+        .type           = Stmt_type_if,
+        .union_.if_else = whole_if_stmt 
+    };
+
+}
+
 Stmt declaration(Lexer* lexer) {
     
-    if (   lexer_peek_n_token(lexer, 1).type == Token_Type_Identifier 
+    if (   
+           lexer_peek_n_token(lexer, 1).type == Token_Type_Identifier 
         && lexer_peek_n_token(lexer, 2).type == (int) ':'
     ) {
         return var_declaration(lexer);
@@ -618,6 +688,9 @@ Stmt declaration(Lexer* lexer) {
         && lexer_peek_n_token(lexer, 2).type == Token_Type_Declaration_Auto
     ) {
         return var_declaration_auto(lexer);
+    }
+    else if (lexer_match_token(lexer, Token_Type_If)) {
+        return if_condition(lexer);
     }
     else 
         return statement(lexer);
@@ -667,6 +740,25 @@ void stmt_delete(Stmt* stmt) {
             return;
         }
 
+        case Stmt_type_if: {
+            Stmt_if if_stmt = stmt->union_.if_else;
+            
+            expr_delete(if_stmt.main_if_expr);
+            stmt_delete(if_stmt.main_if_scope);
+            
+            // Since the else_if tuples store pointers to dyn memory, have to iterate and free them manually
+            for (int i=0; i<if_stmt.expr_scope_tuples.length; ++i) {
+                Tuple__expr_scope* tuple = ((Tuple__expr_scope*) if_stmt.expr_scope_tuples.arr) + i;
+                expr_delete(tuple->expr);
+                stmt_delete(tuple->scope);
+            }
+            array_delete(&if_stmt.expr_scope_tuples);
+
+            stmt_delete(if_stmt.else_scope);
+
+            break;
+        }
+
         default: {
             printf("Was not able to delete a statement inside \"stmt_delete(Stmt* stmt)\", statement's type is not supported for deletion. \n");
             exit(1);
@@ -682,6 +774,7 @@ String stmt_to_string(Stmt* stmt) {
         case Stmt_type_declaration     : { return expr_to_string(stmt->union_.var_decl.init_expr       ); }
         case Stmt_type_declaration_auto: { return expr_to_string(stmt->union_.var_decl_auto.init_expr  ); }
         case Stmt_type_scope           : { return string_init("PRINT FOR SCOPES IS NOT YET IMPLEMENTED"); }
+        case Stmt_type_if              : { return string_init("IF STMT");                                 }
         default: {
             printf("Was not able to create a string from a statement.");
             printf("Statement's type is not supported for string creation. \n");

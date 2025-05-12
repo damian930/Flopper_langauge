@@ -1,29 +1,24 @@
 
-
-outer_var := 69;
-{
-	print outer_var;
-
-	int_1: int = 1 + 2;
-	int_2     := 1 + 2 * 3;
-
-	print int_1 + int_2;
-
-	{
-		print 999;
-
-		{
-			print 666;
-		}
-	}
+if true {
+	print 1;
 }
 
-print outer_var;
+if true and false {
+	print 1;
+}
+else {
+	print 2;
+}
 
-int_1: int = 5 + 10;
-print int_1;
-
-
+if false {
+	print 1;
+}
+else if true {
+	print 2;
+}
+else {
+	print 3;
+}
 
 
 
