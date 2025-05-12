@@ -14,15 +14,19 @@ typedef struct Var_const_decl    Var_const_decl;
 // ==================================
 
 // ==================================
-typedef enum Stmt_type Stmt_type;
-typedef struct Stmt    Stmt;
+typedef enum   Stmt_type           Stmt_type; 
+typedef struct Stmt                Stmt;
+typedef struct Stmt_expr           Stmt_expr;
+typedef struct Stmt_print          Stmt_print; 
+typedef struct Stmt_var_decl       Stmt_var_decl; 
+typedef struct Stmt_var_decl_auto  Stmt_var_decl_auto;
+typedef struct Stmt_scope          Stmt_scope;
 // ==================================
 
 // ==================================
 typedef enum Evaluation_type Evaluation_type; 
 typedef struct Evaluation Evaluation; 
 // ==================================
-
 
 // ==================================
 typedef struct Parser     Parser;
@@ -84,16 +88,12 @@ String expr_to_string(Expr* expr); // For debugging
 // ========================================================================================
 // == Statement 
 
-typedef enum   Stmt_type      Stmt_type; 
-typedef struct Stmt_expr      Stmt_expr;
-typedef struct Stmt_print     Stmt_print; 
-typedef struct Stmt_var_decl  Stmt_var_decl; 
-
-
 enum Stmt_type {
     Stmt_type_expr,
     Stmt_type_print,
     Stmt_type_declaration,
+    Stmt_type_declaration_auto,
+    Stmt_type_scope,
 };
 
 struct Stmt_expr {
@@ -106,24 +106,37 @@ struct Stmt_print {
 
 struct Stmt_var_decl {
     Token var_name;
+    Token var_specified_type;
     Expr* init_expr;
+};
+
+struct Stmt_var_decl_auto {
+    Token var_name;
+    Expr* init_expr;
+};
+
+struct Stmt_scope {
+    Array statements;
 };
 
 struct Stmt {
     Stmt_type type;
     union {
-        Stmt_expr     stmt_expr;
-        Stmt_print    print;
-        Stmt_var_decl var_decl;
+        Stmt_expr          stmt_expr;
+        Stmt_print         print;
+        Stmt_var_decl      var_decl;
+        Stmt_var_decl_auto var_decl_auto;
+        Stmt_scope         scope;
     } union_;
 };
 
-Stmt print_stmt     (Lexer* lexer);
-Stmt expression_stmt(Lexer* lexer);
-Stmt statement      (Lexer* lexer);
-Stmt var_declaration(Lexer* lexer);
-Stmt declaration    (Lexer* lexer);
-Stmt program        (Lexer* lexer);
+Stmt print_stmt          (Lexer* lexer);
+Stmt expression_stmt     (Lexer* lexer);
+Stmt statement           (Lexer* lexer);
+Stmt var_declaration_auto(Lexer* lexer);
+Stmt var_declaration     (Lexer* lexer);
+Stmt declaration         (Lexer* lexer);
+Stmt program             (Lexer* lexer);
 
 void   stmt_delete   (Stmt* stmt);   
 String stmt_to_string(Stmt* stmt); // For debugging

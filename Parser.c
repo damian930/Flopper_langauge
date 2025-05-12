@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "string.h"
 #include "stdio.h"
 #include "Parser.h"
 #include "Lexer.h"
@@ -316,23 +317,32 @@ Expr* expression(Lexer* lexer) {
 }
 
 void expr_delete(Expr* expr) {
-    if (expr->type == Expr_type_primary) return;
+    switch (expr->type) {
+        case Expr_type_primary: { return; }
 
-    if (expr->type == Expr_type_unary) {
-        expr_delete(expr->union_.unary.right); // Delete the child expr
+        case Expr_type_unary: {
+            expr_delete(expr->union_.unary.right); // Delete the child expr
         
-        free(expr->union_.unary.right);
-        return;
+            free(expr->union_.unary.right);
+            return;    
+        }
+
+        case Expr_type_binary: {
+            expr_delete(expr->union_.binary.left ); // Delete the child expr
+            expr_delete(expr->union_.binary.right); // Delete the child expr
+            
+            free(expr->union_.binary.left );
+            free(expr->union_.binary.right);
+            return;
+        }
+
+        default: {
+            printf("BACK_END_ERROR: Was not able to delete expr inside \"expr_delete(Expr* expr). \" \n");
+            exit(1);
+        }
+
     }
 
-    if (expr->type == Expr_type_binary) {
-        expr_delete(expr->union_.binary.left ); // Delete the child expr
-        expr_delete(expr->union_.binary.right); // Delete the child expr
-        
-        free(expr->union_.binary.left );
-        free(expr->union_.binary.right);
-        return;
-    }
     
 }
 
@@ -365,7 +375,6 @@ String expr_to_string(Expr* expr) {
                 }
 
                 case Token_Type_Identifier: {
-                    printf("", expr->union_.primary.union_.identifier.str);
                     string_add_whole_c_string(&str, "Identifier: ");
                     string_add_whole_c_string(&str, expr->union_.primary.union_.identifier.str);
 
@@ -483,6 +492,43 @@ String expr_to_string(Expr* expr) {
 // ========================================================================================
 // == Expression grammar below
 
+Stmt block(Lexer* lexer) {
+    // Enclosing '{' has already been parsed by the called 
+    
+    // 1. Create an array to store statements
+    // 2. Create those statements
+    // 3. Return the array
+
+    Array stmt_arr = array_init(Array_type_stmt);   
+    while(!lexer_is_at_end(lexer)) {
+        if (lexer_peek_next_token(lexer).type == (int) '}')
+            break;
+        Stmt stmt = declaration(lexer);
+        array_add(&stmt_arr, (void*) &stmt, Array_type_stmt); 
+    }
+
+    if (lexer_is_at_end(lexer)) {
+        printf("Was expecting '}', but never found. Unfinished block of code. \n");
+        exit(1);
+    }
+    else
+        lexer_match_token(lexer, (int) '}');
+
+    // TODO: delete this later
+    for (int i=0; i<stmt_arr.length; ++i) {
+        Stmt stmt = ((Stmt*) stmt_arr.arr)[i];
+        String stmt_as_str = stmt_to_string(&stmt);
+        printf("DEBUGGING stmt: %s \n", stmt_as_str.str);
+    }
+
+    return (Stmt) {
+        .type         = Stmt_type_scope,
+        .union_.scope = (Stmt_scope) {
+            .statements = stmt_arr,
+        },
+    };
+}
+
 Stmt print_stmt(Lexer* lexer) {
     // "print" was alredy consumed by the caller
     Expr* expr = expression(lexer);
@@ -503,9 +549,12 @@ Stmt expression_stmt(Lexer* lexer) {
 }
 
 Stmt statement(Lexer* lexer) {
-    if (lexer_peek_next_token(lexer).type == Token_Type_Print) {
-        lexer_next_token(lexer); // NOTE: doing this here to now then check if it the correct token there
+    if (lexer_match_token(lexer, Token_Type_Print)) {
         return print_stmt(lexer);
+    }
+
+    if (lexer_match_token(lexer, (int) '{')) {
+        return block(lexer);
     }
 
     return expression_stmt(lexer);
@@ -515,12 +564,19 @@ Stmt var_declaration_auto(Lexer* lexer) {
     Token var_name   = lexer_consume_token__exits(lexer, Token_Type_Identifier,       "Was expecting an identifier for variable name. \n");
     Token ________   = lexer_consume_token__exits(lexer, Token_Type_Declaration_Auto, "BACK_END_ERR: Was expecting a type specifier ':=' for var_declaration_auto.  \n"); // This is the lang back end error, and not Flopper source code error
     Expr* r_val_expr = expression(lexer);
+
+    //  TODO: something like this sohuld be added to report better errors
+    // printf("Error: varaible creationg using ':=' has to have a right value for initialisation. \n");
+    // printf("       to declare a varaible with no value, use a type specifier like: \n");
+    // printf("       %s: <type> \n", name_as_str.str);
+    // exit(1);
+
     lexer_consume_token__exits(lexer, (int)';', "Was expecting a ';' for the end of a statement, but wasnt found. \n");
 
     // NOTE: type of the r_value is figured out by expression(Lexer* lexer) when creating a primary expression
     return (Stmt) {
-        .type = Stmt_type_declaration,
-        .union_.var_decl = (Stmt_var_decl) {
+        .type = Stmt_type_declaration_auto,
+        .union_.var_decl_auto = (Stmt_var_decl_auto) {
             .var_name    = var_name,
             .init_expr   = r_val_expr, 
         },
@@ -542,14 +598,16 @@ Stmt var_declaration(Lexer* lexer) {
     return (Stmt) {
         .type = Stmt_type_declaration,
         .union_.var_decl = (Stmt_var_decl) {
-            .var_name    = var_name,
-            .init_expr   = r_value_epxr, 
+            .var_name           = var_name,
+            .var_specified_type = var_type,
+            .init_expr          = r_value_epxr, 
         },
     };
 
 }
 
 Stmt declaration(Lexer* lexer) {
+    
     if (   lexer_peek_n_token(lexer, 1).type == Token_Type_Identifier 
         && lexer_peek_n_token(lexer, 2).type == (int) ':'
     ) {
@@ -580,7 +638,7 @@ void stmt_delete(Stmt* stmt) {
         }
 
         case Stmt_type_print: {
-            expr_delete(&stmt->union_.print);
+            expr_delete(stmt->union_.print.expr);
             return;    
         }
     
@@ -589,8 +647,28 @@ void stmt_delete(Stmt* stmt) {
             return;
         }
 
+        case Stmt_type_declaration_auto: {
+            expr_delete(&stmt->union_.var_decl_auto);
+            return;
+        }
+
+        case Stmt_type_scope: {
+            Array* scope_stmts = &stmt->union_.scope.statements;
+            
+            // Deleting statements inside the scope
+            for (int i=0; i<scope_stmts->length; ++i) {
+                Stmt* scope_nested_stmt = ((Stmt*) scope_stmts->arr) + i;
+                stmt_delete(scope_nested_stmt);
+            }
+
+            // Deleting the heap array that stored the statemnets inside the scope
+            array_delete(scope_stmts);
+
+            return;
+        }
+
         default: {
-            printf("Was not able to delete a statement, statement's type is not supported for deletion. \n");
+            printf("Was not able to delete a statement inside \"stmt_delete(Stmt* stmt)\", statement's type is not supported for deletion. \n");
             exit(1);
         }
     }
@@ -599,9 +677,11 @@ void stmt_delete(Stmt* stmt) {
 
 String stmt_to_string(Stmt* stmt) {
     switch (stmt->type) {
-        case Stmt_type_expr       : { return expr_to_string(stmt->union_.stmt_expr.expr     ); }
-        case Stmt_type_print      : { return expr_to_string(stmt->union_.print.expr         ); }
-        case Stmt_type_declaration: { return expr_to_string(stmt->union_.var_decl.init_expr ); }
+        case Stmt_type_expr            : { return expr_to_string(stmt->union_.stmt_expr.expr           ); }
+        case Stmt_type_print           : { return expr_to_string(stmt->union_.print.expr               ); }
+        case Stmt_type_declaration     : { return expr_to_string(stmt->union_.var_decl.init_expr       ); }
+        case Stmt_type_declaration_auto: { return expr_to_string(stmt->union_.var_decl_auto.init_expr  ); }
+        case Stmt_type_scope           : { return string_init("PRINT FOR SCOPES IS NOT YET IMPLEMENTED"); }
         default: {
             printf("Was not able to create a string from a statement.");
             printf("Statement's type is not supported for string creation. \n");
@@ -662,7 +742,13 @@ void parser_parse(Parser* parser) {
         printf("Stmt: %s \n", stmt_to_string(&stmt).str);
 
         array_add(&parser->stmt_arr, (void*) &stmt, Array_type_stmt);
-        stmt_delete(&stmt);
+        string_delete(&str);
+
+        // NOTE: stmt holds a dynamic Expr. Deleting it will remove the nested expr.
+        //       BUT, when we add a stmt to an arr, it add a copy, but it does the default c copying (BY VALUE).
+        //       SO,  so the pointer is different, but the heap memory is the same, calling this will remove it,
+        //              and the pointer inside the array will start working with random values in memory. 
+        //stmt_delete(&stmt);
     }
 }
 

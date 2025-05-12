@@ -10,6 +10,7 @@ enum Array_type {
     Array_type_stmt,
     Array_type_tuple__hash_variable,
     Array_type_variable,
+    Array_type_map_variables,  // For variable scoping inside Language
 };
 int array_get_size_of_arr_type(Array_type type);
 
@@ -20,11 +21,11 @@ struct Array {
     int   capacity;
 };
 
-Array array_init(Array_type type);
+Array array_init (Array_type type);
 void array_delete(Array* arr);
 
-void array_add(Array* arr, void* value, Array_type value_type);
 
+void array_add(Array* arr, void* value, Array_type value_type);
 
 
 // TODO: 

@@ -1,4 +1,5 @@
 #include "Langauge.h"
+#include "string.h"
 
 // ================================================================================
 // == Hash map for variables (name -> value)
@@ -57,6 +58,8 @@ int map_variables_add(Map_variables* map, String name, Evaluation value) {
         array_add(&new_tuple.variables, (void*) &new_var, Array_type_variable); 
         
         array_add(&map->hash_variable_tuples, (void*) &new_tuple, Array_type_tuple__hash_variable); 
+
+        return 0;
     }
     else { // Found
         Tuple__hash_variables* tuple = 
@@ -67,7 +70,7 @@ int map_variables_add(Map_variables* map, String name, Evaluation value) {
         // Check if the tuple arr doesn't alredy have the variable initialised
         for (int i=0; i<tuple->variables.length; ++i) {
             Variable temp = ((Variable*) tuple->variables.arr)[i];
-            if (string_equal(&temp.name, &new_var.name)) {
+            if (string_equal_to_string(&temp.name, &new_var.name)) {
                 return -1;
             }
         }
@@ -91,7 +94,9 @@ int map_variables_add(Map_variables* map, String name, Evaluation value) {
 
 }
 
-Variable map_variables_get(Map_variables* map, String name) {
+// NOTE: returning a pointer to be able to send out NULL if the varaible is not found
+//       the behaviour is the handled by the caller
+Variable* map_variables_get(Map_variables* map, String name) {
     int hash = map_variables_hash(name);
 
     int tuples_len = map->hash_variable_tuples.length;
@@ -99,23 +104,32 @@ Variable map_variables_get(Map_variables* map, String name) {
             ((Tuple__hash_variables*) map->hash_variable_tuples.arr);
     
     for (int i=0; i<tuples_len; ++i) {
+        int test_len = tuples->variables.length;
+        // TODO: it might be, that this is not initialised yet (variables inside tuple)
+        for (int i = 0; i < test_len; ++i) {
+            Variable test_var = ((Variable*) tuples->variables.arr)[i];
+            printf("test_var.name      : %s \n", test_var.name.str  );
+            printf("test_var.value.type: %d \n", test_var.value.type);
+        }
+
+
         if (tuples[i].hash == hash) {
             int variables_len   = tuples[i].variables.length; 
             Variable* variables = 
                 ((Variable*) tuples[i].variables.arr);
             
             for (int j=0; j<variables_len; ++j) {
-                if (string_equal(&variables[j].name, &name)) {
-                    return variables[j];
+                if (string_equal_to_string(&variables[j].name, &name)) {
+                    return variables + j;
                 }
             }
             
         } 
     }
-
-    printf("Was trying to acces a value for an unexsistant variable. \n");
-    printf("Identifier: %s. \n", name.str);
-    exit(1);
+    return NULL;
+    // printf("Was trying to acces a value for an unexsistant variable. \n");
+    // printf("Identifier: %s. \n", name.str);
+    // exit(1);
 }
 
 
@@ -123,37 +137,33 @@ Variable map_variables_get(Map_variables* map, String name) {
 // == Language
 
 Language language_init(const char* text) {
-    return (Language) {
-        .parser        = parser_init(text),
-        .map_variables = map_variables_init(),
+    Language language = {
+        .parser              = parser_init(text),
+        .variable_scopes_arr = array_init(Array_type_map_variables),
     };
+    // NOTE: providing the language environment with a default scope 
+    Map_variables scope = map_variables_init();
+    array_add(&language.variable_scopes_arr, (void*) &scope, Array_type_map_variables);
+    return language;
 }
 
 void language_delete(Language* language) {
-    map_variables_delete(&language->map_variables);
-    // parser_delete() 
+    for (int i=0; i<language->variable_scopes_arr.length; ++i) {
+        Map_variables* scope_vars = ((Map_variables*) language->variable_scopes_arr.arr) + i; 
+        map_variables_delete(scope_vars);
+    }
+
+    array_delete(&language->variable_scopes_arr);
 }
 
 void language_execute(Language* language) {
     parser_parse(&language->parser); // Created statements
-
-    // TODO: Need this to be working
-     //Printint expession just for debugging
-     for (int i=0; i<language->parser.stmt_arr.length; ++i) {
-         // TODO: print stmt insted of an expr
-
-         /*Expr* expr         = ((Stmt*) language->parser.stmt_arr.arr)[i].expr;
-         String expr_as_str = expr_to_string(expr);
-         string_print(&expr_as_str);*/
-     }
-     printf("\n");
 
     for (int i=0; i<language->parser.stmt_arr.length; ++i) {
         Stmt* stmt = ((Stmt*) language->parser.stmt_arr.arr) + i;
         language_execute_statement(language, stmt);
     }
 
-    // TODO: now add variables grammar and them create a few and print a few
 }
 
 void language_execute_statement(Language* language, Stmt* stmt) {
@@ -177,9 +187,13 @@ void language_execute_statement(Language* language, Stmt* stmt) {
             break;
         }
 
+        // NOTE: this handles var creating. 
+        //       it adds new variables to the last created scope.
+        //       there is always at least a single scope there.
         case Stmt_type_declaration: {
             // TODO: why do i have a token here ef i create a string inside the primary var decalration thingy
-            Token name_token  = stmt->union_.var_decl.var_name;
+            Token name_token           = stmt->union_.var_decl.var_name;
+            Token specified_type_token = stmt->union_.var_decl.var_specified_type;
             
             char* name_buffer = malloc(sizeof(char) * name_token.length);
             if (name_buffer == NULL) {
@@ -201,8 +215,39 @@ void language_execute_statement(Language* language, Stmt* stmt) {
             else {
                 eval = language_evaluate_expression(language, stmt->union_.var_decl.init_expr);
             }
+
+            // Checking if the specified type is the same type as the type of the init value expression
+            String type_as_str = string_init("");
+            string_add_c_string(&type_as_str, specified_type_token.lexeme, specified_type_token.length);
+            if (eval.type == Evaluation_type_absent) {
+                // When its absent, then its just not initialised, but the specified type stays
+                int x = 1;
+            }
+            else if (
+                eval.type == Evaluation_type_integer && 
+                strcmp(type_as_str.str, "int") == 0
+            ) {
+                int x = 1;
+            }
+            else if (
+                eval.type == Evaluation_type_boolean && 
+                strcmp(type_as_str.str, "bool") == 0
+            ) {
+                int x = 1;
+            }
+            else {
+                printf("The specified type for variable %s and the type of the initialisation expression were not the same. \n", name_as_str.str);
+                exit(1);
+            }
+            string_delete(&type_as_str);
             
-            int err = map_variables_add(&language->map_variables, name_as_str, eval);
+            // Adding to the last variable scope
+            int scope_length          = language->variable_scopes_arr.length;
+            int last_scope_idx        = (scope_length == 0 ? 0 : scope_length - 1);
+            Map_variables* last_scope = ((Map_variables*) language->variable_scopes_arr.arr) + last_scope_idx;
+            
+            // NOTE: language by default has at least 1 scope
+            int err = map_variables_add(last_scope, name_as_str, eval);
             if (err == -1 ) {
                 printf(
                     "Error: Redefenition of a variable '%s', col: %d, row: %d.\n", 
@@ -221,6 +266,98 @@ void language_execute_statement(Language* language, Stmt* stmt) {
             else if(eval.type == Evaluation_type_absent)  printf("Un Initialised");
             else printf("Unsupported eval type for printing");
             printf(")\n");
+
+            break;
+        }
+
+        case Stmt_type_declaration_auto: {
+            // TODO: why do i have a token here ef i create a string inside the primary var decalration thingy
+            Token name_token  = stmt->union_.var_decl_auto.var_name;
+            
+            char* name_buffer = malloc(sizeof(char) * name_token.length);
+            if (name_buffer == NULL) {
+                printf("Wasnt able to create a dynamic char array, no memory. \n");
+                exit(1);
+            } 
+            
+            for (int i=0; i<name_token.length; ++i) {
+                name_buffer[i] = name_token.lexeme[i];
+            }
+            String name_as_str = string_init("");
+            string_add_c_string(&name_as_str, name_buffer, name_token.length);
+            free(name_buffer);
+            
+            Evaluation eval;
+            if (stmt->union_.var_decl_auto.init_expr == NULL) { // No assigment
+                printf("FEEL LIKE THIS SHOULD NEVER BE CALLED");
+                printf("Error: varaible creationg using ':=' has to have a right value for initialisation. \n");
+                printf("       to declare a varaible with no value, use a type specifier like: \n");
+                printf("       %s: <type> \n", name_as_str.str);
+                exit(1);
+            }   
+            else {
+                eval = language_evaluate_expression(language, stmt->union_.var_decl_auto.init_expr);
+            }
+
+
+            
+            // Adding to the last variable scope
+            int scope_length          = language->variable_scopes_arr.length;
+            int last_scope_idx        = (scope_length == 0 ? 0 : scope_length - 1);
+            Map_variables* last_scope = ((Map_variables*) language->variable_scopes_arr.arr) + last_scope_idx;
+            
+            // NOTE: language by default has at least 1 scope
+            int err = map_variables_add(last_scope, name_as_str, eval);
+            if (err == -1 ) {
+                printf(
+                    "Error: Redefenition of a variable '%s', col: %d, row: %d.\n", 
+                    name_as_str.str,
+                    name_token.column,
+                    name_token.line
+                );
+                exit(1);
+            }
+
+            printf("Declared ("); 
+            printf("%s", name_as_str.str);
+            printf(": "); 
+            if(eval.type == Evaluation_type_integer) printf("int");
+            else if(eval.type == Evaluation_type_boolean) printf("bool");
+            else if(eval.type == Evaluation_type_absent)  printf("Un Initialised");
+            else printf("Unsupported eval type for printing");
+            printf(")\n");
+
+            break;
+        }
+
+        // NOTE: this create new scopes.
+        //       if handles scope creation.
+        //       scopes are created here and added to language scopes arr at the last position.
+        //       then when the nested statements are executed, they will be handles by their own handlers.
+        case Stmt_type_scope: {
+            // Creating new scope and placing it at the last position of lang scopes
+            Map_variables new_scope = map_variables_init();
+            array_add(&language->variable_scopes_arr, &new_scope, Array_type_map_variables); 
+
+            // Executing statements
+            //Array* stmt_arr = &stmt->union_.scope.statements;
+            Array stmt_arr = stmt->union_.scope.statements;
+            for (int i=0; i<stmt_arr.length; ++i) {
+                Stmt* scope_nested_stmt = ((Stmt*) stmt_arr.arr) + i;
+                language_execute_statement(language, scope_nested_stmt);
+            }     
+
+            // Removing new scope
+            map_variables_delete(&new_scope);           // This one here is a sticky one, TODO: write a better explanation for this here
+            language->variable_scopes_arr.length -= 1;
+            {
+                // TODO: maybe dont do it by hand
+                if (language->variable_scopes_arr.length < 1) {
+                    printf("BACK_END_ERROR: somehow the lang object is left with no scopes. \n");
+                    printf("BACK_END_ERROR: Called by \"language_execute_statement(Language* language, Stmt* stmt)\" \n");
+                    exit(1);
+                }
+            }
 
             break;
         }
@@ -259,8 +396,22 @@ Evaluation language_evaluate_expression(Language* language, Expr* expr) {
 
             if (primary_type == Token_Type_Identifier) {
                 String var_name = expr->union_.primary.union_.identifier;
-                Variable var    = map_variables_get(&language->map_variables, var_name);
-                return var.value;
+
+                // 1. Check the newest scope. If not then check the one before that. And so on
+                Array* scopes = &language->variable_scopes_arr;
+                for (int i=0; i<scopes->length; ++i) {
+                    Map_variables* scope = ((Map_variables*) scopes->arr) + i;
+                    Variable* var        = map_variables_get(scope, var_name);
+                    
+                    if (var == NULL) { // Variable not found in the current scope
+                        // searching inside the next scope
+                    }
+                    else 
+                        return var->value;
+                }
+                
+                printf("Was not able to evaluate a varaible with name %s. Variable is not existant. \n", var_name.str);
+                exit(1);
             }
 
             break;

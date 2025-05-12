@@ -1,14 +1,28 @@
 
 
+outer_var := 69;
+{
+	print outer_var;
 
+	int_1: int = 1 + 2;
+	int_2     := 1 + 2 * 3;
 
+	print int_1 + int_2;
 
+	{
+		print 999;
 
-x: int = 4 + 1;
-print x;
+		{
+			print 666;
+		}
+	}
+}
 
-y := false or true;
-print y;
+print outer_var;
+
+int_1: int = 5 + 10;
+print int_1;
+
 
 
 

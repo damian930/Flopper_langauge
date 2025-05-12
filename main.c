@@ -4,6 +4,56 @@
 #include "my_String.h"
 #include "Array.h"
 #include "Langauge.h"
+#include "string.h"
+
+String read_file(const char* file_name);
+
+int main(int args, char *argv[]) {
+	String code      = read_file("code_input.txt");
+	Language flopper = language_init(code.str);
+	language_execute(&flopper);
+	
+	// String code = string_init(" { } ");
+	// Lexer lexer = lexer_init(code.str);
+	// while (!lexer_is_at_end(&lexer)) {
+	// 	Token token = lexer_next_token(&lexer);
+	// 	token_print(&token);
+	// }
+	
+	// if (args == 1) {
+	// 	String code      = read_file("code_input.txt");
+	// 	Language flopper = language_init(code.str);
+	// 	language_execute(&flopper);
+	// }
+	// else if (args == 2) {
+	// 	if (strcmp("test", argv[1])) {
+	// 		printf("Enter code line by line. \n");
+	// 		printf("If an error occurs, you may still continue. \n");
+	// 		printf("To exit, enter \"exit\". \n");
+
+	// 		String code = string_init("");
+	// 		while(strcmp(code.str, "exit") == false) {
+	// 			char user_entered_code[200];
+	// 			printf("> ");
+	// 			scanf_s("%s", user_entered_code, 200);
+
+	// 			printf("\n\n %s", user_entered_code);
+
+	// 			break;
+	// 		}
+	// 	}
+	// }
+
+	
+	//printf("\n --> DONE <-- \n");
+	
+
+
+	return 0;
+
+}
+
+// ====================================================
 
 String read_file(const char* file_name) {
 	String str = string_init("");
@@ -21,21 +71,4 @@ String read_file(const char* file_name) {
 	fclose(file);
 
 	return str;
-}
-
-int main() {
-	String code      = read_file("code_input.txt");
-	Language flopper = language_init(code.str);
-	language_execute(&flopper);
-
-	//printf("\n --> DONE <-- \n");
-	/*Lexer lexer = lexer_init(code.str);
-	while (!lexer_is_at_end(&lexer)) {
-		Token token = lexer_next_token(&lexer);
-		token_print(&token);
-	}*/
-
-
-	return 0;
-
 }

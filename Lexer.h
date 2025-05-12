@@ -18,7 +18,8 @@ typedef enum {
     Token_Type_Greater_Or_Equals,
     Token_Type_Less_Or_Equals,
     
-    Token_Type_String = 256,
+    // Value types for lexeme values
+    Token_Type_String = 256, // THIS IS NOT A REAL TYPE YET
     Token_Type_Integer,
     Token_Type_True,
     Token_Type_False,
@@ -27,6 +28,9 @@ typedef enum {
     Token_Type_Or,
 
     Token_Type_Identifier,
+
+    Token_Type_If,
+    Token_Type_Else,
 
     Token_Type_Declaration_Auto,
 

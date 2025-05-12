@@ -9,6 +9,7 @@ int array_get_size_of_arr_type(Array_type type) {
         case Array_type_variable: { return sizeof(Variable); }
         
         case Array_type_tuple__hash_variable: { return sizeof(Tuple__hash_variables); }
+        case Array_type_map_variables:        { return sizeof(Map_variables);         }
 
         default: {
             printf("Was not able to calculate the size of Array_type. Unsupported type. \n");
@@ -94,17 +95,20 @@ void array_add(Array* arr, void* new_value, Array_type value_type) {
             break;
         }
 
+        case Array_type_map_variables: {
+            Map_variables* scope = (Map_variables*)arr->arr;
+            scope[arr->length]   = *((Map_variables*)new_value);
+            arr->length += 1;
+
+            break;
+        }
+
         default: {
             printf("Was not able to add a value to array. new_value is of an unsupported type. \n");
             exit(1);
         }
     }
 }
-
-
-
-
-
 
 
 

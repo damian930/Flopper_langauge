@@ -63,6 +63,10 @@ Token lexer_next_token(Lexer *lexer) {
         return lexer_init_token(lexer, (int)'(');
     case ')':
         return lexer_init_token(lexer, (int)')');
+    case '{':
+        return lexer_init_token(lexer, (int) '{');
+    case '}':
+        return lexer_init_token(lexer, (int) '}');
     case ':': {
         if (lexer_peek_next_char(lexer) == (int) '=') {
             lexer_consume_char(lexer);
@@ -147,7 +151,7 @@ Token lexer_peek_n_token(Lexer* lexer, int n) {
     Token token;
     for (int i=0; i<n; ++i)
         token = lexer_next_token(lexer);
-    
+
     lexer->current_idx = token_start_idx;
     return token;
 }
@@ -216,7 +220,7 @@ Token lexer_create_digit_token(Lexer *lexer) {
 }
 
 Token lexer_create_identifier_token(Lexer* lexer) {
-    // Read the indentifier
+    // Read the indentifier to then math the type of it in the switch statement
     char next_char = lexer_peek_next_char(lexer);
     while (!lexer_is_at_end(lexer) && (isalnum(next_char) || next_char == '_')) {
         lexer_consume_char(lexer);
@@ -230,6 +234,8 @@ Token lexer_create_identifier_token(Lexer* lexer) {
         case 'a': return lexer_match_keyword(lexer, 1, "nd",   2, Token_Type_And  );
         case 'o': return lexer_match_keyword(lexer, 1, "r",    1, Token_Type_Or   );
         case 'p': return lexer_match_keyword(lexer, 1, "rint", 4, Token_Type_Print);
+        case 'e': return lexer_match_keyword(lexer, 1, "lse",  3, Token_Type_Else );
+        case 'i': return lexer_match_keyword(lexer, 1, "f",    1, Token_Type_If   );
         default : return lexer_init_token(lexer, Token_Type_Identifier); 
     }
 }
@@ -239,7 +245,7 @@ Token lexer_match_keyword(Lexer* lexer, int current_token_offset, const char* re
     if (lexer->token_start_idx + current_token_offset + rest_len == lexer->current_idx) {
         for (int i=0; i<rest_len; ++i) {
             if (lexer->text[lexer->token_start_idx + current_token_offset + i] != rest[i])
-            break;
+                return lexer_init_token(lexer, Token_Type_Identifier);
         }
         return lexer_init_token(lexer, type_to_match);
     }

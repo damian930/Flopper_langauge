@@ -90,6 +90,31 @@ unary      :: ( "!" | "-" ) unary
 primary    :: INTEGER | BOOLEAN | "(" expression ")" 
 =============================================================
 
+=============================================================
+== Grammar 0.23
+
+program         :: declaration*                                     
+declaration     :: var_declaration | var_declaration_auto | statement    
+
+var_declaration      :: IDENTIFIER ":"  IDENTIFIER (= expression)? ";"        
+var_declaration_auto :: IDENTIFIER ":=" expression ";";   
+
+statement            :: expression_stmt | print_stmt | block            <---    
+expression_stmt      :: expression ";"                          
+print_stmt           :: "print" expression ";"  
+block                :: "{" declaration* "}"                 
+
+expression :: equality 
+equality   :: and_or ( ( "!=" | "==" ) and_or )*                
+and_or     :: comparison ( ( "and" | "or" )  comparison )*  
+comparison :: term ( ( ">" | ">=" | "<" | "<=" ) term )* 
+term       :: factor ( ( "-" | "+" ) factor )* 
+factor     :: unary ( ( "/" | "*" ) unary )* 
+unary      :: ( "!" | "-" ) unary
+              | primary 
+primary    :: INTEGER | BOOLEAN | "(" expression ")" 
+=============================================================
+
 
 
 

@@ -24,26 +24,24 @@ struct Map_variables {
 Map_variables map_variables_init();
 void map_variables_delete(Map_variables* map);
 
-int      map_variables_hash(String name);
-int      map_variables_add (Map_variables* map, String name, Evaluation value);
-Variable map_variables_get (Map_variables* map, String name);
+int       map_variables_hash(String name);
+int       map_variables_add (Map_variables* map, String name, Evaluation value);
+Variable* map_variables_get (Map_variables* map, String name);
+
 
 // ================================================================================
-
-
-
 typedef struct Language Language;
 
 struct Language {
     Parser parser;
-    Map_variables map_variables;
+    Array  variable_scopes_arr; // NOTE: this is an arry of Map_variables
 };
-Language language_init(const char* text);
-void language_delete(Language* language);
-void language_execute(Language* language);
+Language language_init   (const char* text);
+void     language_delete (Language* language);
+void     language_execute(Language* language);
 
 Evaluation language_evaluate_expression(Language* language, Expr* expr);
-void       language_execute_statement(Language* language, Stmt* stmt);
+void       language_execute_statement  (Language* language, Stmt* stmt);
 
 
 

@@ -111,11 +111,21 @@ void string_add_string(String* str, String* other_str) {
     str->str[str->length] = '\0';
 }
 
-bool string_equal(String* str1, String* str2) {
+bool string_equal_to_string(String* str1, String* str2) {
     if (str1->length != str2->length) return false;
 
     for(int i=0; i<str1->length; ++i) {
         if (str1->str[i] != str2->str[i])
+            return false;
+    }
+    return true;
+}
+
+bool string_equal_to_c_string(String* str1, const char* str2) {
+    if (str1->length != length_of_str(str2)) return false;
+
+    for(int i=0; i<str1->length; ++i) {
+        if (str1->str[i] != str2[i])
             return false;
     }
     return true;

@@ -1,0 +1,43 @@
+Building a Compiler/Interpreter/Transpiler
+
+Notes to Crafting Interpreters:
+	Scanning:
+		-- Lexeme is a string from the source text.
+		-- Literal is the actuall value the lexeme holds.
+
+	Parsing:
+		-- The author created an AST, for mathematical grammar, then uses Java to evaluate the ast 
+			from top to bottom. All the operators evaluate values. The values are evalueated
+			using (double) from the java Object class, whitch the author used to represent 
+			literals when was scanning text.
+			
+		-- So there is no manuall storying of data in memory, Java does everything, we just
+			make sure that the types are the ones we expect. We use Java type casting for that.
+			
+	Statements and States:
+		-- The author added grammar for statemnets (printf "Fortnite";). 
+			These statements are parsed differently. 
+			Each statements is parsed separatally and the stores into a list of parsed statements.
+			After thet list is created, every statements gets executed.
+			Right now there are 2 types of statements.
+			Stmt_1 --> "Expression : Expr expression".
+			Stmt_2 --> "Print      : Expr expression".
+			Expressions get evaluated and then are used somehow inside statements.
+			
+		-- The author stores variables in a gloabal map. 
+		-- Read the "Assingment"(8.4) chapter. 
+			Example: 
+				object.name = 5;
+				var x 		= 5;
+			In both examples, the left hand side is a valid expression. In the first case, 
+			if there was no assignment, the expresion would just return a value. 
+			So to create an Assigment node, we read an Expression, then match for '=' and if it is there,
+			we create an Assigment node.
+		
+		-- The author added blobks of code and local enviromnts.
+			Now local variables and be deleted from theor own emviroments when execution leaves their scope.
+			
+	Control Flow:
+		-- ...
+			
+		
