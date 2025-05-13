@@ -249,11 +249,11 @@ void language_execute_statement(Language* language, Stmt* stmt) {
             // NOTE: language by default has at least 1 scope
             int err = map_variables_add(last_scope, name_as_str, eval);
             if (err == -1 ) {
+                printf("Error: Redefenition of a variable '%s'.\n", name_as_str.str);
                 printf(
-                    "Error: Redefenition of a variable '%s', col: %d, row: %d.\n", 
-                    name_as_str.str,
-                    name_token.column,
-                    name_token.line
+                    "       (Row_start, Col_start)__(Row_end, Col_end): (%d, %d)__(%d, %d)",
+                    name_token.start_row_n, name_token.start_col_n,
+                    name_token.end_row_n, name_token.end_col_n
                 );
                 exit(1);
             }
@@ -309,11 +309,11 @@ void language_execute_statement(Language* language, Stmt* stmt) {
             // NOTE: language by default has at least 1 scope
             int err = map_variables_add(last_scope, name_as_str, eval);
             if (err == -1 ) {
+               printf("Error: Redefenition of a variable '%s'.\n", name_as_str.str);
                 printf(
-                    "Error: Redefenition of a variable '%s', col: %d, row: %d.\n", 
-                    name_as_str.str,
-                    name_token.column,
-                    name_token.line
+                    "       (Row_start, Col_start)__(Row_end, Col_end): (%d, %d)__(%d, %d)",
+                    name_token.start_row_n, name_token.start_col_n,
+                    name_token.end_row_n, name_token.end_col_n
                 );
                 exit(1);
             }

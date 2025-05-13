@@ -6,31 +6,20 @@
 #include "my_String.h"
 #include "Array.h"
 
-// ========================================================================================
-// == Grammar:
-//      program         :: declaration*                                     
-//      declaration     :: var_declaration | statement
-//
-//      var_declaration :: IDENTIFIER ":" IDENTIFIER (= expression)? ";"   <---                            
-//      statement       :: expression_stmt | print_stmt             
-//      expression_stmt :: expression ";"                          
-//      print_stmt      :: "print" expression ";"                   
-//
-//      expression :: equality 
-//      equality   :: and_or ( ( "!=" | "==" ) and_or )*                
-//      and_or     :: comparison ( ( "and" | "or" )  comparison )*  
-//      comparison :: term ( ( ">" | ">=" | "<" | "<=" ) term )* 
-//      term       :: factor ( ( "-" | "+" ) factor )* 
-//      factor     :: unary ( ( "/" | "*" ) unary )* 
-//      unary      :: ( "!" | "-" ) unary
-//                    | primary 
-//      primary    :: INTEGER | BOOLEAN | "(" expression ")" 
-// ========================================================================================
 
 // ========================================================================================
 // == Expression grammar below
 
 Expr* primary(Lexer* lexer) {
+    // TODO: do some else, hardcoding this is not great
+    if (lexer_peek_nth_token(lexer, 1).type == (int)'*'
+        &&
+        lexer_peek_nth_token(lexer, 2).type == (int)'/') 
+    {
+        printf("Found a closing '*/' block comment, but the starting '/*' was never found. \n");
+        exit(1);
+    }
+
     Token token = lexer_next_token(lexer);
     
     if (token.type == (int) '(') {
@@ -607,11 +596,11 @@ Stmt if_condition(Lexer* lexer) {
     lexer_consume_token__exits(lexer, (int)'{', "Was expecting a '{' after if condition. \n");
     Stmt  main_if_scope = block(lexer);
 
-
+    
     Array expr_scope_tuples = array_init(Array_type_tuple__expr_score);
     // Getting else_if statements 
-    while(lexer_peek_n_token(lexer, 1).type == Token_Type_Else &&
-          lexer_peek_n_token(lexer, 2).type == Token_Type_If
+    while(lexer_peek_nth_token(lexer, 1).type == Token_Type_Else &&
+          lexer_peek_nth_token(lexer, 2).type == Token_Type_If
     ) {
         lexer_consume_token__exits(lexer, Token_Type_Else,   "BACK_END_ERROR: was expecting to cosume 'if' but if wasnt found.   \n");
         lexer_consume_token__exits(lexer, Token_Type_If, "BACK_END_ERROR: was expecting to cosume 'else' but if wasnt found. \n");
@@ -676,16 +665,15 @@ Stmt if_condition(Lexer* lexer) {
 }
 
 Stmt declaration(Lexer* lexer) {
-    
     if (   
-           lexer_peek_n_token(lexer, 1).type == Token_Type_Identifier 
-        && lexer_peek_n_token(lexer, 2).type == (int) ':'
+           lexer_peek_nth_token(lexer, 1).type == Token_Type_Identifier 
+        && lexer_peek_nth_token(lexer, 2).type == (int) ':'
     ) {
         return var_declaration(lexer);
     }
     else if (
-           lexer_peek_n_token(lexer, 1).type == Token_Type_Identifier
-        && lexer_peek_n_token(lexer, 2).type == Token_Type_Declaration_Auto
+           lexer_peek_nth_token(lexer, 1).type == Token_Type_Identifier
+        && lexer_peek_nth_token(lexer, 2).type == Token_Type_Declaration_Auto
     ) {
         return var_declaration_auto(lexer);
     }
@@ -829,7 +817,7 @@ Parser parser_init(const char* text) {
 }
 
 void parser_parse(Parser* parser) {
-    while(!lexer_is_at_end(&parser->lexer)) {
+    while (lexer_peek_next_token(&parser->lexer).type != Token_Type_EOF) {
         Stmt stmt  = program(&parser->lexer);
         String str = stmt_to_string(&stmt);
         printf("Stmt: %s \n", stmt_to_string(&stmt).str);

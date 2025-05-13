@@ -1,64 +1,93 @@
 #pragma once
+#include <stdint.h>
 #include "Lexer.h"
 #include "stdio.h"
 #include "ctype.h"
 
+static u32 c_string_len(const char* str) {
+    u32 len = 0;
+    while(str[len] != '\0')
+        len += 1;
+    return len;
+}
+
 Lexer lexer_init(const char *text) {
     Lexer lexer = {
-        .text            = text,
-        .token_start_idx = 0,
-        .current_idx     = 0,
-        .column          = 1,
-        .line            = 1,
+        .text              = text,
+        .text_len          = c_string_len(text),
+
+        .token_start_idx   = 0,
+        .current_idx       = 0,
+        
+        .token_start_row_n = 1,
+        .token_start_col_n = 0,
+        
+        .token_end_row_n   = 1,
+        .token_end_col_n   = 0,
     };
 
     return lexer;
 }
 
-bool lexer_is_at_end(const Lexer *lexer) {
-    return lexer->text[lexer->current_idx] == '\0';
+bool lexer_is_at_end(Lexer *lexer) {
+    if (lexer->current_idx < lexer->text_len)
+        return false;
+    else if (lexer->current_idx == lexer->text_len)
+        return true;
+    else {
+        printf("BACK_END_ERROR: Somehow lexer index went out of the text char array. \n");
+        exit(1);
+    }
 }
 
-char lexer_peek_next_char(const Lexer *lexer) {
+char lexer_peek_next_char(Lexer *lexer) {
     if (lexer_is_at_end(lexer))
         return '\0';
     else
         return lexer->text[lexer->current_idx];
 }
 
+char lexer_peek_nth_char(Lexer* lexer, u32 n) {
+    if (lexer->current_idx + n < lexer->text_len) 
+        return lexer->text[lexer->current_idx + n];
+    else 
+        return '\0';
+}
+
 char lexer_consume_char(Lexer *lexer) {
     if (lexer_is_at_end(lexer))
         return '\0';
     else {
-        // Indentation
-        char current_char = lexer->text[lexer->current_idx];
-        if (current_char == '\n') {
-            lexer->column += 1;
-            lexer->line    = 1;
-        }
-        else {
-            lexer->line += 1;
-        }
-
+        // Deal with row, col information for tokens
+        char consumed_char  = lexer->text[lexer->current_idx];
         lexer->current_idx += 1;
-        return current_char;
+
+        if (consumed_char == '\n') {
+            lexer->token_end_row_n += 1;
+            lexer->token_end_col_n  = 1;
+        }
+        else 
+            lexer->token_end_col_n += 1;
+
+
+        return consumed_char;
     }
 }
 
 Token lexer_next_token(Lexer *lexer) {
-    lexer->token_start_idx = lexer->current_idx;
-    char prev_ch = lexer_consume_char(lexer);
+    while (   lexer_skip_whitespaces(lexer) == true
+           || lexer_skip_comments(lexer)    == true
+    ); 
 
-    // TODO: check if skipping whitespaces both here and inside init_token does anything
-    if (isspace(prev_ch)) {
-        lexer_skip_whitespaces(lexer);
+    // Setting up data for the upcomming token
+    lexer->token_start_row_n = lexer->token_end_row_n;
+    lexer->token_start_col_n = lexer->token_end_col_n;
+    char prev_char = lexer_consume_char(lexer);
 
-        lexer->token_start_idx = lexer->current_idx;
-        prev_ch = lexer_consume_char(lexer);
-    }
-
-    switch (prev_ch) 
+    switch (prev_char) 
     {
+    case '\0':
+        return lexer_init_token(lexer, Token_Type_EOF);
     case '(':
         return lexer_init_token(lexer, (int)'(');
     case ')':
@@ -67,14 +96,6 @@ Token lexer_next_token(Lexer *lexer) {
         return lexer_init_token(lexer, (int) '{');
     case '}':
         return lexer_init_token(lexer, (int) '}');
-    case ':': {
-        if (lexer_peek_next_char(lexer) == (int) '=') {
-            lexer_consume_char(lexer);
-            return lexer_init_token(lexer, Token_Type_Declaration_Auto);
-        }
-        else
-            return lexer_init_token(lexer, (int) ':');
-    }
     case '+':
         return lexer_init_token(lexer, (int)'+');
     case '-':
@@ -125,12 +146,20 @@ Token lexer_next_token(Lexer *lexer) {
         else
             return lexer_init_token(lexer, (int) '=');
     }
+    case ':': {
+        if (lexer_peek_next_char(lexer) == (int) '=') {
+            lexer_consume_char(lexer);
+            return lexer_init_token(lexer, Token_Type_Declaration_Auto);
+        }
+        else
+            return lexer_init_token(lexer, (int) ':');
+    }
 
     default:
-        if (prev_ch == '\"')
+        if (prev_char == '\"')
             return lexer_create_string_token(lexer);
 
-        if (isdigit(prev_ch))
+        if (isdigit(prev_char))
             return lexer_create_digit_token(lexer);
 
         return lexer_create_identifier_token(lexer);
@@ -139,20 +168,34 @@ Token lexer_next_token(Lexer *lexer) {
 }
 
 Token lexer_peek_next_token(Lexer* lexer) {
-    int token_start_idx = lexer->current_idx;
+    // Only storing end values, since start are changed to end when token is created
+    u32 token_start_idx = lexer->current_idx;
+    u32 token_end_col_n = lexer->token_end_col_n;
+    u32 token_end_row_n = lexer->token_end_row_n;
+
     Token token         = lexer_next_token(lexer);
-    lexer->current_idx  = token_start_idx;
+
+    lexer->current_idx     = token_start_idx;
+    lexer->token_end_col_n = token_end_col_n;
+    lexer->token_end_row_n = token_end_row_n;
+
     return token;
 }
 
-Token lexer_peek_n_token(Lexer* lexer, int n) {
-    int token_start_idx = lexer->current_idx;
+Token lexer_peek_nth_token(Lexer* lexer, u32 n) {
+    // Only storing end values, since start are changed to end when token is created
+    u32 token_start_idx = lexer->current_idx;
+    u32 token_end_col_n = lexer->token_end_col_n;
+    u32 token_end_row_n = lexer->token_end_row_n;
     
     Token token;
     for (int i=0; i<n; ++i)
         token = lexer_next_token(lexer);
 
-    lexer->current_idx = token_start_idx;
+    lexer->current_idx     = token_start_idx;
+    lexer->token_end_col_n = token_end_col_n;
+    lexer->token_end_row_n = token_end_row_n;
+
     return token;
 }
 
@@ -169,9 +212,9 @@ bool lexer_match_token(Lexer* lexer, Token_Type expected_type) {
 Token lexer_consume_token__exits(Lexer* lexer, Token_Type expected_type, const char* error_message) {
     Token token = lexer_next_token(lexer);
     if (token.type != expected_type) {
-        printf("%s \n",   error_message   );
-        printf("Row: %d \n", lexer->line  );
-        printf("Col: %d \n", lexer->column);
+        printf("%s \n",      error_message);
+        printf("Start position: (row, col) -> (%d, %d). \n", lexer->token_start_row_n, lexer->token_start_col_n);
+        printf("End   position: (row, col) -> (%d, %d). \n", lexer->token_end_row_n,   lexer->token_end_col_n  );
         exit(1);
     }
     return token;
@@ -182,12 +225,13 @@ Token lexer_create_string_token(Lexer *lexer) {
         lexer_consume_char(lexer);
     }
 
+    // TODO: maybe change to match char
     if (lexer->text[lexer->current_idx] == '\"') {
         lexer_consume_char(lexer);
         return lexer_init_token(lexer, Token_Type_String);
     }
     else {
-        printf("Was not able to parse a string. \n");
+        printf("Was not able to parse a string, closing '\"' wasn't found. \n");
         exit(1);
     }
 }
@@ -240,7 +284,7 @@ Token lexer_create_identifier_token(Lexer* lexer) {
     }
 }
 
-Token lexer_match_keyword(Lexer* lexer, int current_token_offset, const char* rest, int rest_len, Token_Type type_to_match) {
+Token lexer_match_keyword(Lexer* lexer, u32 current_token_offset, const char* rest, u32 rest_len, Token_Type type_to_match) {
     // Might be our token, need to check
     if (lexer->token_start_idx + current_token_offset + rest_len == lexer->current_idx) {
         for (int i=0; i<rest_len; ++i) {
@@ -253,24 +297,75 @@ Token lexer_match_keyword(Lexer* lexer, int current_token_offset, const char* re
     return lexer_init_token(lexer, Token_Type_Identifier); 
 }
 
-void lexer_skip_whitespaces(Lexer *lexer) {
-    while (isspace(lexer_peek_next_char(lexer))) {
+bool lexer_skip_whitespaces(Lexer *lexer) {
+    // Handeling all the whitespace characters myself, to not miss handeling any
+    // TODO: dont forget, that token row,col data is dependant on correct implementation inside lexer_consume_char.
+    //       if an unsupported whispace by lexer_consume_char is consumed here, the row,col data will be invalid.
+    bool skipped = false;
+    while (
+        lexer_peek_next_char(lexer) == ' '  ||
+        lexer_peek_next_char(lexer) == '\n' ||
+        lexer_peek_next_char(lexer) == '\t' 
+    ) {
+        skipped = true;
         lexer_consume_char(lexer);
-    }
+    }   
+    
     lexer->token_start_idx = lexer->current_idx;
+    return skipped;
 }
 
-//void lexer_skip_comments(Lexer* lexer) {
-//    if (lexer_peek_next_char(lexer, 1) == '/')
-//}
+bool lexer_skip_comments(Lexer* lexer) {
+    // Default comment '//'
+    if (lexer_peek_nth_char(lexer, 0) == '/' && lexer_peek_nth_char(lexer, 1) == '/') {
+        lexer_consume_char(lexer); // '/'
+        lexer_consume_char(lexer); // '/'
 
-inline Token lexer_init_token(Lexer *lexer, Token_Type type) {
+        while (!lexer_is_at_end(lexer) && lexer_peek_next_char(lexer) != '\n')
+            lexer_consume_char(lexer);
+        
+        lexer_consume_char(lexer); // '\n'
+
+        lexer->token_start_idx = lexer->current_idx;
+        return true;
+    }
+
+    // Block comments '/* */'
+    if (lexer_peek_nth_char(lexer, 0) == '/' && lexer_peek_nth_char(lexer, 1) == '*') {
+        lexer_consume_char(lexer); // '/'
+        lexer_consume_char(lexer); // '*'
+        
+        int comment_level = 1;
+        while (!lexer_is_at_end(lexer) && comment_level != 0) {
+            if (lexer_peek_nth_char(lexer, 0) == '/' && lexer_peek_nth_char(lexer, 1) == '*') {
+                lexer_consume_char(lexer); // '/'
+                lexer_consume_char(lexer); // '*'
+                comment_level += 1;
+            }
+            else if (lexer_peek_nth_char(lexer, 0) == '*' && lexer_peek_nth_char(lexer, 1) == '/') {
+                lexer_consume_char(lexer); // '*'
+                lexer_consume_char(lexer); // '/'
+                comment_level -= 1;
+            }
+            else
+                lexer_consume_char(lexer);
+        }
+        return true;
+    }
+    return false;
+}
+
+Token lexer_init_token(Lexer *lexer, Token_Type type) {
     Token token = token_init(
         type, 
         &lexer->text[lexer->token_start_idx], 
         lexer ->current_idx - lexer->token_start_idx,
-        lexer->column,
-        lexer->line
+
+        lexer->token_start_row_n,
+        lexer->token_start_col_n,
+        
+        lexer->token_end_row_n,
+        lexer->token_end_col_n
     );
     // Manually skipping whitespaces here, so the next token is a legit token
     lexer_skip_whitespaces(lexer); 
@@ -279,13 +374,18 @@ inline Token lexer_init_token(Lexer *lexer, Token_Type type) {
 
 
 
-Token token_init(Token_Type type, char *lexeme, int length, int col, int row) {
+Token token_init(Token_Type type, char *lexeme, u32 length, 
+                 u32 start_row_n, u32 start_col_n, u32 end_row_n, u32 end_col_n) {
     Token token = {
         .type   = type,
         .lexeme = lexeme,
         .length = length,
-        .column = col,
-        .line   = row,
+        
+        .start_row_n = start_row_n,
+        .start_col_n = start_col_n,
+        
+        .end_row_n   = end_row_n,
+        .end_col_n   = end_col_n,
     };
 
     return token;
@@ -293,14 +393,18 @@ Token token_init(Token_Type type, char *lexeme, int length, int col, int row) {
 
 void token_print(Token *token) {
     printf("Token: \n");
-    printf("\tlength: %d \n", token->length);
-    printf("\ttype:   %d \n", token->type);
-
-    printf("\tlexeme: \"");
+    printf("\ttype       : %d \n", token->type);
+    printf("\tlexeme     : \"");
     for (int i = 0; i < token->length; i++) {
         printf("%c", token->lexeme[i]);
     }
-    printf("\"\n");
+    printf("\" \n");
+    printf("\tstart_row_n: %d \n", token->start_row_n  );
+    printf("\tstart_col_n: %d \n", token->start_col_n  );
+    printf("\tend_row_n  : %d \n", token->end_row_n - 1);
+    printf("\tend_col_n  : %d \n", token->end_col_n    );
+
+    printf("\n");
 }
 
 

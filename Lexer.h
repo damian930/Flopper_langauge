@@ -1,17 +1,16 @@
 #pragma once
 #include <stdbool.h>
+#include <stdint.h>
 
-typedef struct {
-    char* text;
-    int token_start_idx;
-    int current_idx;
+typedef int32_t   s32;
+typedef uint32_t  u32;
 
-int column;
-    int line;
-} Lexer;
+typedef enum   Token_Type  Token_Type;
+typedef struct Token       Token;
+typedef struct Lexer       Lexer;
 
-typedef enum {
-    // Mentally isnert some other ASCII in here
+enum Token_Type {
+    // Mentally isnert other ASCII in here
 
     Token_Type_Equals_Equals,
     Token_Type_Not_Equals,
@@ -38,37 +37,56 @@ typedef enum {
 
     // Token_Type_Illegal, 
     Token_Type_EOF
-} Token_Type;
+};
 
-typedef struct {
+struct Token {
     Token_Type type;
-    char *lexeme;
-    int length;
+    char*      lexeme;
+    u32        length;
 
-    int column;
-    int line;
+    u32 start_row_n;
+    u32 start_col_n;
+    
+    u32 end_row_n;
+    u32 end_col_n;
+};
 
-} Token;
+struct Lexer {
+    char* text;
+    u32   text_len;
+
+    u32 token_start_idx;
+    u32 current_idx;
+
+    u32 token_start_row_n;
+    u32 token_start_col_n;
+    
+    u32 token_end_row_n;
+    u32 token_end_col_n;
+};
 
 Lexer lexer_init(const char *text);
 
-bool lexer_is_at_end(const Lexer *lexer);
-char lexer_peek_next_char(const Lexer *lexer);
-char lexer_consume_char(Lexer *lexer);
+bool lexer_is_at_end     (Lexer *lexer);
+char lexer_peek_next_char(Lexer *lexer);
+char lexer_peek_nth_char (Lexer* lexer, u32 n);
+char lexer_consume_char  (Lexer *lexer);
+// bool lexer_match_char(Lexer* lexer);
 
-Token lexer_next_token(Lexer *lexer);
+Token lexer_next_token     (Lexer *lexer);
 Token lexer_peek_next_token(Lexer* lexer);
-Token lexer_peek_n_token(Lexer* lexer, int n);
-bool  lexer_match_token(Lexer* lexer, Token_Type expected_type);
+Token lexer_peek_nth_token (Lexer* lexer, u32 n);
+bool  lexer_match_token    (Lexer* lexer, Token_Type expected_type);
 Token lexer_consume_token__exits(Lexer* lexer, Token_Type expected_type, const char* error_message);
 
-Token lexer_init_token(Lexer *lexer, Token_Type type);
-Token lexer_create_string_token(Lexer *lexer);
-Token lexer_create_digit_token(Lexer *lexer);
+Token lexer_init_token             (Lexer *lexer, Token_Type type);
+Token lexer_create_string_token    (Lexer *lexer);
+Token lexer_create_digit_token     (Lexer *lexer);
 Token lexer_create_identifier_token(Lexer* lexer);
-Token lexer_match_keyword(Lexer* lexer, int current_token_offset, const char* rest, int rest_len, Token_Type type_to_match);
-void  lexer_skip_whitespaces(Lexer *lexer);
+Token lexer_match_keyword          (Lexer* lexer, u32 current_token_offset, const char* rest, u32 rest_len, Token_Type type_to_match);
+bool  lexer_skip_whitespaces       (Lexer *lexer);
+bool  lexer_skip_comments           (Lexer* lexer);
 
-Token token_init(Token_Type type, char *lexeme, int length, int col, int row);
+Token token_init(Token_Type type, char *lexeme, u32 length, u32 col, u32 row);
 void token_print(Token *token);
 

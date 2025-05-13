@@ -13,12 +13,12 @@ int main(int args, char *argv[]) {
 	Language flopper = language_init(code.str);
 	language_execute(&flopper);
 	
-	// String code = string_init(" { } ");
-	// Lexer lexer = lexer_init(code.str);
-	// while (!lexer_is_at_end(&lexer)) {
-	// 	Token token = lexer_next_token(&lexer);
-	// 	token_print(&token);
-	// }
+	//String code = string_init(" { } ");
+	/*Lexer lexer = lexer_init(code.str);
+	while (lexer_peek_next_token(&lexer).type != Token_Type_EOF) {
+		Token token = lexer_next_token(&lexer);
+		token_print(&token);
+	}*/
 	
 	// if (args == 1) {
 	// 	String code      = read_file("code_input.txt");
