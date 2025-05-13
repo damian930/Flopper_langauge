@@ -49,13 +49,13 @@ Token lexer_next_token(Lexer *lexer) {
     lexer->token_start_idx = lexer->current_idx;
     char prev_ch = lexer_consume_char(lexer);
 
+    // TODO: check if skipping whitespaces both here and inside init_token does anything
     if (isspace(prev_ch)) {
         lexer_skip_whitespaces(lexer);
 
         lexer->token_start_idx = lexer->current_idx;
         prev_ch = lexer_consume_char(lexer);
     }
-    
 
     switch (prev_ch) 
     {
@@ -81,10 +81,10 @@ Token lexer_next_token(Lexer *lexer) {
         return lexer_init_token(lexer, (int)'-');
     case '*':
         return lexer_init_token(lexer, (int)'*');
-    case '/':
-        return lexer_init_token(lexer, (int)'/');
     case ';':
         return lexer_init_token(lexer, (int) ';');
+    case '/':
+        return lexer_init_token(lexer, (int)'/');
     case '>': {
         if (lexer_peek_next_char(lexer) == '=')
         {
@@ -259,6 +259,10 @@ void lexer_skip_whitespaces(Lexer *lexer) {
     }
     lexer->token_start_idx = lexer->current_idx;
 }
+
+//void lexer_skip_comments(Lexer* lexer) {
+//    if (lexer_peek_next_char(lexer, 1) == '/')
+//}
 
 inline Token lexer_init_token(Lexer *lexer, Token_Type type) {
     Token token = token_init(

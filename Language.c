@@ -627,6 +627,58 @@ Evaluation language_evaluate_expression(Language* language, Expr* expr) {
 
                     break;
                 }
+                case Token_Type_Equals_Equals: {
+                    if (
+                        left.type  == Evaluation_type_boolean &&
+                        right.type == Evaluation_type_boolean
+                    ) {
+                        return (Evaluation) {
+                            .type           = Evaluation_type_boolean,
+                            .union_.boolean = (left.union_.boolean == right.union_.boolean),
+                        };
+                    }
+
+                    if (
+                        left.type  == Evaluation_type_integer &&
+                        right.type == Evaluation_type_integer
+                    ) {
+                        return (Evaluation) {
+                            .type           = Evaluation_type_boolean,
+                            .union_.boolean = (left.union_.integer == right.union_.integer),
+                        };
+                    }
+
+                    printf("Error, unsupported operator '==' for types. \n");
+                    exit(1);
+
+                    break;
+                }
+                case Token_Type_Not_Equals: {
+                    if (
+                        left.type  == Evaluation_type_boolean &&
+                        right.type == Evaluation_type_boolean
+                    ) {
+                        return (Evaluation) {
+                            .type           = Evaluation_type_boolean,
+                            .union_.boolean = (left.union_.boolean != right.union_.boolean),
+                        };
+                    }
+
+                    if (
+                        left.type  == Evaluation_type_integer &&
+                        right.type == Evaluation_type_integer
+                    ) {
+                        return (Evaluation) {
+                            .type           = Evaluation_type_boolean,
+                            .union_.boolean = (left.union_.integer != right.union_.integer),
+                        };
+                    }
+
+                    printf("Error, unsupported operator '!=' for types. \n");
+                    exit(1);
+
+                    break;
+                }
 
                 default: {
                     printf("Wasn't able to evaluate binary expr, it is not supported. \n");
