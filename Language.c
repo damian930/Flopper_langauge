@@ -262,6 +262,41 @@ void language_execute_statement(Language* language, Stmt* stmt) {
             break;
         }
 
+        case Stmt_type_var_assignment: {
+            Token var_name      = stmt->union_.var_assignment.var_name;
+            Expr* expr          = stmt->union_.var_assignment.assigment_expr;
+            Evaluation expr_val = language_evaluate_expression(language, expr);
+
+            String var_name_as_str = string_init("");
+            string_add_c_string(&var_name_as_str, var_name.lexeme, var_name.length);
+
+            Evaluation* var_value = NULL;
+            for (int i=0; i<language->scopes.length; ++i) {
+                Language_scope* scope = ((Language_scope*) language->scopes.arr) + i;
+                var_value = language_scope_get_value_for_varaible(scope, var_name_as_str);
+                
+                if (var_value != NULL) break; 
+            }
+
+            if (var_value != NULL) {
+                if (var_value->type == expr_val.type) {
+                    *var_value = expr_val;
+                }
+                else {
+                    printf("Error: can't assign a value to varaible '%s', since its type is not the same as the type of the r_value expression. \n", var_name_as_str.str);
+                    exit(1);
+                }
+            }
+            else {
+                printf("Error: trying to assign a value to a non-existant variable. \n");
+                exit(1);
+            }
+
+            string_delete(&var_name_as_str);
+
+            break;
+        }
+
         // NOTE: this create new scopes.
         //       if handles scope creation.
         //       scopes are created here and added to language scopes arr at the last position.
@@ -501,7 +536,7 @@ void language_execute_statement(Language* language, Stmt* stmt) {
             Evaluation condition_eval  = language_evaluate_expression(language, while_loop.condition); 
             
             if (condition_eval.type != Evaluation_type_boolean) {
-                printf("Error: Consition for a while loop must have a boolean value, other type was found. \n");
+                printf("Error: Condition for a while loop must have a boolean value, other type was found. \n");
                 exit(1);
             }
 

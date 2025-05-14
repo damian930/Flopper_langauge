@@ -544,8 +544,23 @@ Stmt statement(Lexer* lexer) {
     return expression_stmt(lexer);
 }
 
+Stmt var_assignment(Lexer* lexer) {
+    Token var_name  = lexer_consume_token__exits(lexer, Token_Type_Identifier, "BACK_END_ERR: Was expecting an identifier for variable name. \n");
+    Token ________  = lexer_consume_token__exits(lexer, (int) '=', "BACK_END_ERR: Was expecting a type specifier ':=' for var_declaration_auto.  \n"); // This is the lang back end error, and not Flopper source code error
+    Expr* expr      = expression(lexer);
+    lexer_consume_token__exits(lexer, (int) ';', "Was specting a ';' at the end of the assigment r_value expression. \n");
+    
+    return (Stmt) {
+        .type                  = Stmt_type_var_assignment,
+        .union_.var_assignment = (Stmt_var_assignment) {
+            .var_name       = var_name,
+            .assigment_expr = expr,
+        }
+    };
+}
+
 Stmt var_declaration_auto(Lexer* lexer) {
-    Token var_name   = lexer_consume_token__exits(lexer, Token_Type_Identifier,       "Was expecting an identifier for variable name. \n");
+    Token var_name   = lexer_consume_token__exits(lexer, Token_Type_Identifier,       "BACK_END_ERR: Was expecting an identifier for variable name. \n");
     Token ________   = lexer_consume_token__exits(lexer, Token_Type_Declaration_Auto, "BACK_END_ERR: Was expecting a type specifier ':=' for var_declaration_auto.  \n"); // This is the lang back end error, and not Flopper source code error
     Expr* r_val_expr = expression(lexer);
 
@@ -758,6 +773,12 @@ Stmt declaration(Lexer* lexer) {
     ) {
         return var_declaration_auto(lexer);
     }
+    else if (
+           lexer_peek_nth_token(lexer, 1).type == Token_Type_Identifier
+        && lexer_peek_nth_token(lexer, 2).type == (int) '='   
+    ) {
+        return var_assignment(lexer);
+    }
     else if (lexer_match_token(lexer, Token_Type_If)) {
         return if_condition(lexer);
     }
@@ -859,6 +880,12 @@ void stmt_delete(Stmt* stmt) {
             break;
         }
 
+        case Stmt_type_var_assignment: {
+            expr_delete(stmt->union_.var_assignment.assigment_expr);
+
+            break;
+        }
+
         default: {
             printf("Was not able to delete a statement inside \"stmt_delete(Stmt* stmt)\", statement's type is not supported for deletion. \n");
             exit(1);
@@ -873,6 +900,7 @@ String stmt_to_string(Stmt* stmt) {
         case Stmt_type_print           : { return expr_to_string(stmt->union_.print.expr               ); }
         case Stmt_type_declaration     : { return expr_to_string(stmt->union_.var_decl.init_expr       ); }
         case Stmt_type_declaration_auto: { return expr_to_string(stmt->union_.var_decl_auto.init_expr  ); }
+        case Stmt_type_var_assignment  : { return string_init("ASSIGNMENT");                              }
         case Stmt_type_scope           : { return string_init("PRINT FOR SCOPES IS NOT YET IMPLEMENTED"); }
         case Stmt_type_if              : { return string_init("IF STMT");                                 }
         case Stmt_type_for_loop        : { return string_init("FOR LOOP");                                }

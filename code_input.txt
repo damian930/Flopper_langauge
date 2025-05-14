@@ -1,8 +1,15 @@
-last_value := 10;
 
-while true {
-	print 1;
-}
+
+
+
+
+
+x := 10;
+
+for i in 1..=x {
+	x = x - 1;
+	print x;
+}  
 
 
 

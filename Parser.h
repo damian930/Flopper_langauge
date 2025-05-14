@@ -14,18 +14,19 @@ typedef struct Var_const_decl    Var_const_decl;
 // ==================================
 
 // ==================================
-typedef enum   Stmt_type           Stmt_type; 
-typedef struct Stmt                Stmt;
-typedef struct Stmt_expr           Stmt_expr;
-typedef struct Stmt_print          Stmt_print; 
-typedef struct Stmt_var_decl       Stmt_var_decl; 
-typedef struct Stmt_var_decl_auto  Stmt_var_decl_auto;
-typedef struct Stmt_scope          Stmt_scope;
-typedef struct Tuple__expr_scope   Tuple__expr_scope; 
-typedef struct Stmt_if             Stmt_if;
-typedef struct For_loop_range      For_loop_range;
-typedef struct Stmt_for_loop       Stmt_for_loop;       
-typedef struct Stmt_while_loop     Stmt_while_loop;
+typedef enum   Stmt_type            Stmt_type; 
+typedef struct Stmt                 Stmt;
+typedef struct Stmt_expr            Stmt_expr;
+typedef struct Stmt_print           Stmt_print; 
+typedef struct Stmt_var_decl        Stmt_var_decl; 
+typedef struct Stmt_var_decl_auto   Stmt_var_decl_auto;
+typedef struct Stmt_scope           Stmt_scope;
+typedef struct Tuple__expr_scope    Tuple__expr_scope; 
+typedef struct Stmt_if              Stmt_if;
+typedef struct For_loop_range       For_loop_range;
+typedef struct Stmt_for_loop        Stmt_for_loop;       
+typedef struct Stmt_while_loop      Stmt_while_loop;
+typedef struct Stmt_var_assignment  Stmt_var_assignment;
 // ==================================
 
 // ==================================
@@ -98,6 +99,7 @@ enum Stmt_type {
     Stmt_type_print,
     Stmt_type_declaration,
     Stmt_type_declaration_auto,
+    Stmt_type_var_assignment,
     Stmt_type_scope,
     Stmt_type_if,
     Stmt_type_for_loop,
@@ -121,6 +123,11 @@ struct Stmt_var_decl {
 struct Stmt_var_decl_auto {
     Token var_name;
     Expr* init_expr;
+};
+
+struct Stmt_var_assignment {
+    Token var_name;
+    Expr* assigment_expr;
 };
 
 struct Stmt_scope {
@@ -170,20 +177,22 @@ struct Stmt_while_loop {
 struct Stmt {
     Stmt_type type;
     union {
-        Stmt_expr          stmt_expr;
-        Stmt_print         print;
-        Stmt_var_decl      var_decl;
-        Stmt_var_decl_auto var_decl_auto;
-        Stmt_scope         scope;
-        Stmt_if            if_else;
-        Stmt_for_loop      for_loop;
-        Stmt_while_loop    while_loop;
+        Stmt_expr           stmt_expr;
+        Stmt_print          print;
+        Stmt_var_decl       var_decl;
+        Stmt_var_decl_auto  var_decl_auto;
+        Stmt_var_assignment var_assignment;
+        Stmt_scope          scope;
+        Stmt_if             if_else;
+        Stmt_for_loop       for_loop;
+        Stmt_while_loop     while_loop;
     } union_;
 };
 
 Stmt print_stmt          (Lexer* lexer);
 Stmt expression_stmt     (Lexer* lexer);
 Stmt statement           (Lexer* lexer);
+Stmt var_assignment      (Lexer* lexer);
 Stmt var_declaration_auto(Lexer* lexer);
 Stmt var_declaration     (Lexer* lexer);
 Stmt if_condition        (Lexer* lexer);
