@@ -25,6 +25,7 @@ typedef struct Tuple__expr_scope   Tuple__expr_scope;
 typedef struct Stmt_if             Stmt_if;
 typedef struct For_loop_range      For_loop_range;
 typedef struct Stmt_for_loop       Stmt_for_loop;       
+typedef struct Stmt_while_loop     Stmt_while_loop;
 // ==================================
 
 // ==================================
@@ -100,6 +101,7 @@ enum Stmt_type {
     Stmt_type_scope,
     Stmt_type_if,
     Stmt_type_for_loop,
+    Stmt_type_while_loop,
 };
 
 struct Stmt_expr {
@@ -152,12 +154,17 @@ struct For_loop_range {
     Expr* increment;
     bool  include_end_value;
 };
-// // ======================================
+// ======================================
 
 struct Stmt_for_loop {
     For_loop_range range;
     Stmt_scope     scope; // TODO: make this a regular STMT, storing it as Stmt_scope result in a lot of pain
     Token     identifier;
+};
+
+struct Stmt_while_loop {
+    Expr* condition;
+    Stmt* scope;    // Stmt_scope 
 };
 
 struct Stmt {
@@ -170,6 +177,7 @@ struct Stmt {
         Stmt_scope         scope;
         Stmt_if            if_else;
         Stmt_for_loop      for_loop;
+        Stmt_while_loop    while_loop;
     } union_;
 };
 
@@ -180,6 +188,7 @@ Stmt var_declaration_auto(Lexer* lexer);
 Stmt var_declaration     (Lexer* lexer);
 Stmt if_condition        (Lexer* lexer);
 Stmt for_loop            (Lexer* lexer);
+Stmt while_loop          (Lexer* lexer);
 Stmt declaration         (Lexer* lexer);
 Stmt program             (Lexer* lexer);
 

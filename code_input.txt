@@ -1,5 +1,27 @@
 last_value := 10;
 
-for i in 0..=last_value..2 {
-	print i;
+while true {
+	print 1;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

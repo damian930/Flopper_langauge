@@ -274,11 +274,12 @@ Token lexer_create_identifier_token(Lexer* lexer) {
     
     // Get the type of the identifier
     switch (lexer->text[lexer->token_start_idx]) {
-        case 't': return lexer_match_keyword(lexer, 1, "rue",  3, Token_Type_True );
-        case 'a': return lexer_match_keyword(lexer, 1, "nd",   2, Token_Type_And  );
-        case 'o': return lexer_match_keyword(lexer, 1, "r",    1, Token_Type_Or   );
-        case 'p': return lexer_match_keyword(lexer, 1, "rint", 4, Token_Type_Print);
-        case 'e': return lexer_match_keyword(lexer, 1, "lse",  3, Token_Type_Else );
+        case 't': return lexer_match_keyword(lexer, 1, "rue",  3, Token_Type_True  );
+        case 'a': return lexer_match_keyword(lexer, 1, "nd",   2, Token_Type_And   );
+        case 'o': return lexer_match_keyword(lexer, 1, "r",    1, Token_Type_Or    );
+        case 'p': return lexer_match_keyword(lexer, 1, "rint", 4, Token_Type_Print );
+        case 'e': return lexer_match_keyword(lexer, 1, "lse",  3, Token_Type_Else  );
+        case 'w': return lexer_match_keyword(lexer, 1, "hile", 4, Token_Type_While );
         case 'i': {
             if (lexer->text[lexer->token_start_idx + 1] == 'f')
                 return lexer_match_keyword(lexer, 2, "", 0, Token_Type_If);

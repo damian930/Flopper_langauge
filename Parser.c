@@ -713,6 +713,38 @@ Stmt for_loop(Lexer* lexer) {
     };
 }
 
+// "while" expression block
+Stmt while_loop(Lexer* lexer) {
+    // "while" has alredy been consumed by the caller
+    Expr* condition = expression(lexer);
+    if (lexer_match_token(lexer, (int)'{')) {
+        // TODO: this can be used to only execute 1 statement, if the '{' was not found
+    }
+    else {
+        printf("Error: Was expecting a '{' to start a while loop scope after 'while' and condition. \n");
+        exit(1);
+    }
+    Stmt  scope     = block(lexer);
+
+    Stmt* scope_dyn = malloc(sizeof(Stmt));
+    if (scope_dyn == NULL) {
+        printf("Was not able to intialise memory. \n");
+        exit(1);
+    }
+    *scope_dyn = scope;
+
+    // THINK ABOUT IT: i either store STMT and then have to malloc it, or store Stmt_scope but dont have to malloc it,
+    //                 but then i need to wrap it into Stmt every time. Maybe there is some other way thats better.
+
+    return (Stmt) {
+        .type              = Stmt_type_while_loop,
+        .union_.while_loop = (Stmt_while_loop) {
+            .condition = condition,
+            .scope     = scope_dyn,
+        }
+    };
+}
+
 Stmt declaration(Lexer* lexer) {
     if (   
            lexer_peek_nth_token(lexer, 1).type == Token_Type_Identifier 
@@ -731,6 +763,9 @@ Stmt declaration(Lexer* lexer) {
     }
     else if (lexer_match_token(lexer, Token_Type_For)) {
         return for_loop(lexer);
+    }
+    else if (lexer_match_token(lexer, Token_Type_While)) {
+        return while_loop(lexer);
     }
     else 
         return statement(lexer);
@@ -816,6 +851,14 @@ void stmt_delete(Stmt* stmt) {
             break;
         }
 
+        case Stmt_type_while_loop: {
+            expr_delete(stmt->union_.while_loop.condition);
+            stmt_delete(stmt->union_.while_loop.scope);
+            free(stmt->union_.while_loop.scope);
+
+            break;
+        }
+
         default: {
             printf("Was not able to delete a statement inside \"stmt_delete(Stmt* stmt)\", statement's type is not supported for deletion. \n");
             exit(1);
@@ -833,6 +876,7 @@ String stmt_to_string(Stmt* stmt) {
         case Stmt_type_scope           : { return string_init("PRINT FOR SCOPES IS NOT YET IMPLEMENTED"); }
         case Stmt_type_if              : { return string_init("IF STMT");                                 }
         case Stmt_type_for_loop        : { return string_init("FOR LOOP");                                }
+        case Stmt_type_while_loop      : { return string_init("WHILE LOOP");                              }                            
         default: {
             printf("Was not able to create a string from a statement.");
             printf("Statement's type is not supported for string creation. \n");

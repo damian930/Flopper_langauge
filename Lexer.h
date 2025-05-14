@@ -39,6 +39,8 @@ enum Token_Type {
     Token_Type_In,
     Token_Type_Dot_Dot,
 
+    Token_Type_While,
+
     Token_Type_EOF
 };
 

@@ -341,7 +341,7 @@ void language_execute_statement(Language* language, Stmt* stmt) {
         case Stmt_type_for_loop: {
             // NOTE: since execution for Stmt_scope deletes the scope after execution,
             //       we would not be able to execute for loop scope more than once.
-            //       sicne the logic here is different, we execute here ourselves.
+            //       sicne the logic here is different, we execute scope ourselves.
 
             // TODO: maybe find a way to execute witout code duplication.
             //       maybe splitting execution for each type if stmt into its own function might help
@@ -483,6 +483,32 @@ void language_execute_statement(Language* language, Stmt* stmt) {
 
             break;
 
+        }
+
+        case Stmt_type_while_loop: {
+            // NOTE: since execution for Stmt_scope deletes the scope after execution,
+            //       we would not be able to execute for loop scope more than once.
+            //       sicne the logic here is different, we execute scope ourselves.
+
+            // TODO: maybe find a way to execute witout code duplication.
+            //       maybe splitting execution for each type if stmt into its own function might help
+            //       then it would have an if in the end like: bool delete = true.
+
+            // Plan: 1. Execute the while_loop.scope stmt manually until while_loop.condition is false
+
+            // 1.
+            Stmt_while_loop while_loop = stmt->union_.while_loop;
+            Evaluation condition_eval  = language_evaluate_expression(language, while_loop.condition); 
+            
+            if (condition_eval.type != Evaluation_type_boolean) {
+                printf("Error: Consition for a while loop must have a boolean value, other type was found. \n");
+                exit(1);
+            }
+
+            while (language_evaluate_expression(language_execute, while_loop.condition).union_.boolean == true)
+                language_execute_statement(language, while_loop.scope);
+
+            break;
         }
 
         default: {
