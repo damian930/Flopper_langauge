@@ -1,23 +1,5 @@
-print 1 == 1;
+last_value := 10;
 
-
-if 2 + 2 == 4 {
-	{
-		x := 100;
-		print x;
-	}
-
-	x := 3;
-	print x;
-
-	{
-		x := 200;
-		print x;
-	}
+for i in 0..=last_value..2 {
+	print i;
 }
-else {
-	print false;
-}
-
-print x;
-

@@ -146,18 +146,19 @@ struct Stmt_if {
 // TODO: dont forget to then delete these dynamic statements
 
 // == Structured needed for Stmt_for_loop to work
-// struct For_loop_range {
-//     s32 start;
-//     s32 end;
-//     s32 increment;
-// };
+struct For_loop_range {
+    Expr* start;
+    Expr* end;
+    Expr* increment;
+    bool  include_end_value;
+};
 // // ======================================
 
-// struct Stmt_for_loop {
-//     For_loop_range range;
-//     Stmt_scope     scope;
-//     Token     identifier;
-// };
+struct Stmt_for_loop {
+    For_loop_range range;
+    Stmt_scope     scope; // TODO: make this a regular STMT, storing it as Stmt_scope result in a lot of pain
+    Token     identifier;
+};
 
 struct Stmt {
     Stmt_type type;
@@ -168,7 +169,7 @@ struct Stmt {
         Stmt_var_decl_auto var_decl_auto;
         Stmt_scope         scope;
         Stmt_if            if_else;
-        //Stmt_for_loop      for_loop;
+        Stmt_for_loop      for_loop;
     } union_;
 };
 

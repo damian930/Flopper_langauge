@@ -277,7 +277,7 @@ Language language_init(const char* text) {
 void language_delete(Language* language) {
     for (int i=0; i<language->scopes.length; ++i) {
         Language_scope* scope = ((Language_scope*) language->scopes.arr) + i;
-        language_scope_delete(&scope);
+        language_scope_delete(scope);
     }
     array_delete(&language->scopes);
     parser_delete(&language->parser);
@@ -541,59 +541,152 @@ void language_execute_statement(Language* language, Stmt* stmt) {
             break;
         }
 
-        // case Stmt_type_for_loop: {
-        //     Stmt_for_loop for_loop = stmt->union_.for_loop;
+        case Stmt_type_for_loop: {
+            // NOTE: since execution for Stmt_scope deletes the scope after execution,
+            //       we would not be able to execute for loop scope more than once.
+            //       sicne the logic here is different, we execute here ourselves.
 
-        //     Token identifier = for_loop.identifier;
-        //     int start = for_loop.range.start;
-        //     int end   = for_loop.range.end;
-        //     int incr  = for_loop.range.increment;
+            // TODO: maybe find a way to execute witout code duplication.
+            //       maybe splitting execution for each type if stmt into its own function might help
+            //       then it would have an if in the end like: bool delete = true.
+
+            // Plan: 1. Create a new scope for the language
+            //       2. Manually add a varaible to that scope
+            //       3. Add that scope as the last one
+            //       4. Execute the for_loop.scope stmt manually until the range runs out
+            //       5. Delete the scope for the iter_var 
+
+            Stmt_for_loop for_loop = stmt->union_.for_loop;
+
+            Token identifier       = for_loop.identifier;
+            Expr* start_expr       = for_loop.range.start; // TODO: maybe check if start and end are not NULL here
+            Expr* end_expr         = for_loop.range.end;   // TODO: maybe check if start and end are not NULL here
+            Expr* increment_expr   = for_loop.range.increment;
+            bool include_end_value = for_loop.range.include_end_value; 
+
+            // 1.
+            Language_scope manual_scope = {
+                .variables = array_init(Array_type_tuple_string_evaluation),
+            };
+
+            // 2.
             
-        //     // @Refactor: Hate this way of doing for loops
-        //     // Plan:
-        //     //      Create a iteration variable, add to to the last scope
-        //     //      When the loop is over, remove the iteration variable from the last scope 
+            int start, end, increment;
 
-        //     // Creating iteration variable and adding to the last scope
-
-        //     while(start < end) {
-        //         Expr init_expr = {
-        //             .type = Expr_type_primary,
-        //             .union_.primary = (Primary) {
-        //                 .type = Token_Type_Integer,
-        //                 .union_.integer = start
-        //             }
-        //         };
-        //         Stmt iter_var_decl = {
-        //             .type = Stmt_type_declaration_auto,
-        //             .union_.var_decl_auto = (Stmt_var_decl_auto) {
-        //                 .init_expr  = &init_expr,
-        //                 .var_name   = identifier,
-        //             }
-        //         };
-        //         array_add(&for_loop.scope.statements, (void*) &iter_var_decl, Array_type_stmt);
-
-        //         Stmt stmt_to_execute = {
-        //             .type = Stmt_type_scope,
-        //             .union_.scope = for_loop.scope,
-        //         };
-
-        //         language_execute_statement(language, &stmt_to_execute);
+            Evaluation start_eval = language_evaluate_expression(language, start_expr);
+            Evaluation end_eval   = language_evaluate_expression(language, end_expr);
             
-        //         Map_variables* last_scope = 
-        //             ((Map_variables*) language->variable_scopes_arr.arr) + (language->variable_scopes_arr.length); // Dont know why no -1 to get the last element
-        //         String token_name_as_str = string_init("");
-        //         string_add_c_string(&token_name_as_str, identifier.lexeme, identifier.length);    
-                
-        //         int err_code = map_variable_remove(last_scope, token_name_as_str);
-        //         printf("ERRCODE --> %d \n", err_code);
-                
-        //         string_delete(&token_name_as_str);
+            if (start_eval.type != Evaluation_type_integer) {
+                printf("Error: Value used to start a for loop range was not of int type, only int types are supported. \n");
+                exit(1);
+            }
+            else 
+                start = start_eval.union_.integer; 
 
-        //     }
+            if (end_eval.type != Evaluation_type_integer) {
+                printf("Error: Value used to end a for loop range was not of int type, only int types are supported. \n");
+                exit(1);
+            }
+            else 
+                end = end_eval.union_.integer;
 
-        //     break;
-        // }
+            if (increment_expr != NULL) {
+                Evaluation increment_eval = language_evaluate_expression(language, increment_expr);
+                if (increment_eval.type != Evaluation_type_integer) {
+                    printf("Error: Value used to increment a for loop range was not of int type, only int types are supported. \n");
+                    exit(1);
+                }
+                else 
+                    increment = increment_eval.union_.integer;
+            }
+            else 
+                increment = 1;
+
+            String iter_var_as_str = string_init("");
+            string_add_c_string(&iter_var_as_str, identifier.lexeme, identifier.length);
+
+            Tuple__string_evaluation iter_var = {
+                .str  = iter_var_as_str,
+                .eval = (Evaluation) {
+                    .type           = Evaluation_type_integer,
+                    .union_.integer = start,
+                } 
+            };
+            array_add(&manual_scope.variables, (void*) &iter_var, Array_type_tuple_string_evaluation);
+
+            // 3.
+            array_add(&language->scopes, &manual_scope, Array_type_language_scope);
+            
+            // 4.
+            // Have to make an Stmt from for_loop.scope since its Stmt_scope and not Stmt
+            Stmt for_loop_stmt = {
+                .type         = Stmt_type_scope,
+                .union_.scope = for_loop.scope,
+            };
+            // Manual scope execution
+            Evaluation* iter_var_eval = language_scope_get_value_for_varaible(&manual_scope, iter_var_as_str);
+            if (iter_var_eval == NULL) {
+                printf("BACK_END_ERROR: Somehow the iter variable for the for loop was not existant in its own scope. \n");
+                exit(1);
+            } 
+            
+            if (iter_var_eval->type != Evaluation_type_integer) {
+                printf("BACK_END_ERROR: Somehow the type for iter variable in the for loop was not of int type, only int is supported. \n");
+                exit(1);
+            }
+
+            while (true) {
+                if (include_end_value == false && iter_var_eval->union_.integer == end)
+                    break;
+                
+                if (include_end_value == true && increment < 0 && iter_var_eval->union_.integer < end)
+                    break;  
+                
+                if (include_end_value == true && increment > 0 && iter_var_eval->union_.integer > end)
+                    break;
+
+                // Execute while range is valid
+                {
+                    Language_scope new_scope = {
+                        .variables = array_init(Array_type_tuple_string_evaluation),
+                    };
+                    array_add(&language->scopes, &new_scope, Array_type_language_scope);
+
+                    // Executing statements
+                    Array stmt_arr = for_loop.scope.statements;
+                    for (int i=0; i<stmt_arr.length; ++i) {
+                        Stmt* scope_nested_stmt = ((Stmt*) stmt_arr.arr) + i;
+                        language_execute_statement(language, scope_nested_stmt);
+                    }     
+
+                    // Removing new scope
+                    // The new scope is the last one, so just freeing the memory for new_scope and lanaguge.arr.length - 1
+                    language_scope_delete(&new_scope);
+                    language->scopes.length -= 1;
+
+                    // Asserting
+                    {
+                        // TODO: maybe dont do it by hand
+                        if (language->scopes.length < 1) {
+                            printf("BACK_END_ERROR: somehow the lang object is left with no scopes. \n");
+                            printf("BACK_END_ERROR: Called by \"language_execute_statement(Language* language, Stmt* stmt)\" \n");
+                            exit(1);
+                        }
+                    } 
+                }
+                iter_var_eval->union_.integer += increment;
+            }
+
+            // 5.
+            language_scope_delete(&manual_scope); // String gets delete here
+            language->scopes.length -= 1;
+
+            // Delete all the heap
+            // string_delete(&iter_var_as_str);
+
+            break;
+
+        }
 
         default: {
             printf("Was not able to execute a statement. Statement type is unsupported. \n");

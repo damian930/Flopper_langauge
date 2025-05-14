@@ -13,6 +13,15 @@ int main(int args, char *argv[]) {
 	Language flopper = language_init(code.str);
 	language_execute(&flopper);
 	language_delete(&flopper);
+
+	//for (int i = 0; i < 4; i++) {
+	//	i++;
+	//	int i = 2;
+	//	i++;
+	//	printf("%d --> ", i);
+	//}
+
+	
 	
 	//String code = string_init(" { } ");
 	//Lexer lexer = lexer_init(code.str);

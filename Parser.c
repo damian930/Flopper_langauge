@@ -665,60 +665,53 @@ Stmt if_condition(Lexer* lexer) {
 }
 
 // INTEGER ".." INTEGER (".." INTEGER)?
-// For_loop_range for_loop_range(Lexer* lexer) {
-//     Token token_start = lexer_consume_token__exits(lexer, Token_Type_Integer, "Error: was expecting an integer value to start range. \n");
-//     Token ___________ = lexer_consume_token__exits(lexer, Token_Type_Dot_Dot, "Error: was expecting '..' after an integer that starts a range. \n");
-//     Token token_end   = lexer_consume_token__exits(lexer, Token_Type_Integer, "Error: was expecting an integer value to end range. \n");
+For_loop_range for_loop_range(Lexer* lexer) {
+    Expr* start = expression(lexer);
+    
+    Token _____ = lexer_consume_token__exits(lexer, Token_Type_Dot_Dot, "Error: was expecting '..' after an integer that starts a range. \n");
+    
+    bool  include_end_value = false;
+    if (lexer_match_token(lexer, (int) '='))
+        include_end_value = true;
+        
+    Expr* end = expression(lexer);
+    
+    Expr* increment = NULL;
+    if (lexer_match_token(lexer, Token_Type_Dot_Dot)) 
+        increment = expression(lexer);
+    
+    return (For_loop_range) {
+        .start             = start,
+        .end               = end,
+        .increment         = increment,
+        .include_end_value = include_end_value,
+    };
+}
 
-//     int increment = 1;
-//     /*if (lexer_match_token(lexer, Token_Type_Dot_Dot)) {
-//         Token token_increment = lexer_consume_token__exits(lexer, Token_Type_Integer, "Error: was expecting an integer value after second '..' in range to set the increment. \n");
-//         increment = atoi(token_increment.lexeme);
-//     }*/
+// "for" IDENTIFIER "in" for_loop_range block
+Stmt for_loop(Lexer* lexer) {
+    // "for" has alredy been consumed by the caller
+    Token identifier     = lexer_consume_token__exits(lexer, Token_Type_Identifier, "Error: Was expecting an identifier after 'for', but wasn't found. \n");
+    Token __________     = lexer_consume_token__exits(lexer, Token_Type_In,         "Error: Was expecting 'in' after 'for var', but wasn't found.      \n");
+    For_loop_range range = for_loop_range(lexer); 
 
-//     // TODO: dont like doing dyn allocation here just to convert to int
-//     String start_as_str = string_init("");
-//     String end_as_str   = string_init("");
-//     string_add_c_string(&start_as_str, token_start.lexeme, token_start.length);
-//     string_add_c_string(&end_as_str,   token_end.lexeme,   token_end.length  );
+    lexer_consume_token__exits(lexer, (int) '{', "Error: Was expecting '{' to start a scope after range in a for loop, but wasn't found. \n");
+    Stmt stmt_block = block(lexer);
+    if (stmt_block.type != Stmt_type_scope) {
+        printf("BACK_END_ERROR: Somehow block(Lexer* lexer) return Stmt with type other than Stmt_type_scope. \n");
+        exit(1);
+    }
+    Stmt_scope scope = stmt_block.union_.scope;
 
-//     int start = atoi(start_as_str.str);
-//     int end   = atoi(end_as_str.str);
-
-//     string_delete(&start_as_str);
-//     string_delete(&end_as_str);
-
-//     return (For_loop_range) {
-//         .start     = start,
-//         .end       = end,
-//         .increment = increment,
-//     };
-// }
-
-// // "for" IDENTIFIER "in" for_loop_range block
-// Stmt for_loop(Lexer* lexer) {
-//     // "for" has alredy been consumed by the caller
-//     Token identifier     = lexer_consume_token__exits(lexer, Token_Type_Identifier, "Error: Was expecting an identifier after 'for', but wasn't found. \n");
-//     Token __________     = lexer_consume_token__exits(lexer, Token_Type_In,         "Error: Was expecting 'in' after 'for var', but wasn't found.      \n");
-//     For_loop_range range = for_loop_range(lexer); 
-
-//     lexer_consume_token__exits(lexer, (int) '{', "Error: Was expecting '{' to start a scope after range in a for loop, but wasn't found. \n");
-//     Stmt stmt_block = block(lexer);
-//     if (stmt_block.type != Stmt_type_scope) {
-//         printf("BACK_END_ERROR: Somehow block(Lexer* lexer) return Stmt with type other than Stmt_type_scope. \n");
-//         exit(1);
-//     }
-//     Stmt_scope scope = stmt_block.union_.scope;
-
-//     return (Stmt) {
-//         .type = Stmt_type_for_loop,
-//         .union_.for_loop = (Stmt_for_loop) {
-//             .range      = range,
-//             .scope      = scope,
-//             .identifier = identifier 
-//         }
-//     };
-// }
+    return (Stmt) {
+        .type = Stmt_type_for_loop,
+        .union_.for_loop = (Stmt_for_loop) {
+            .range      = range,
+            .scope      = scope,
+            .identifier = identifier 
+        }
+    };
+}
 
 Stmt declaration(Lexer* lexer) {
     if (   
@@ -736,9 +729,9 @@ Stmt declaration(Lexer* lexer) {
     else if (lexer_match_token(lexer, Token_Type_If)) {
         return if_condition(lexer);
     }
-    // else if (lexer_match_token(lexer, Token_Type_For)) {
-    //     return for_loop(lexer);
-    // }
+    else if (lexer_match_token(lexer, Token_Type_For)) {
+        return for_loop(lexer);
+    }
     else 
         return statement(lexer);
 
@@ -806,11 +799,22 @@ void stmt_delete(Stmt* stmt) {
             break;
         }
 
-        /*case Stmt_type_for_loop: {
-            stmt_delete(&stmt->union_.for_loop.scope);
+        case Stmt_type_for_loop: {
+            // TODO: this has to change, just store STMT inside for_loop_stmt
+            Stmt temp = {
+                .type         = Stmt_type_scope,
+                .union_.scope = stmt->union_.for_loop.scope,
+            };
+            stmt_delete(&temp);
             
+            expr_delete(stmt->union_.for_loop.range.start);
+            expr_delete(stmt->union_.for_loop.range.end);
+
+            if (stmt->union_.for_loop.range.increment != NULL)
+                expr_delete(stmt->union_.for_loop.range.increment);
+
             break;
-        }*/
+        }
 
         default: {
             printf("Was not able to delete a statement inside \"stmt_delete(Stmt* stmt)\", statement's type is not supported for deletion. \n");
