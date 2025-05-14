@@ -75,8 +75,9 @@ char lexer_consume_char(Lexer *lexer) {
 }
 
 Token lexer_next_token(Lexer *lexer) {
-    while (   lexer_skip_whitespaces(lexer) == true
-           || lexer_skip_comments(lexer)    == true
+    while (lexer_skip_whitespaces(lexer) == true
+           || 
+           lexer_skip_comments(lexer)    == true
     ); 
 
     // Setting up data for the upcomming token
@@ -107,24 +108,20 @@ Token lexer_next_token(Lexer *lexer) {
     case '/':
         return lexer_init_token(lexer, (int)'/');
     case '>': {
-        if (lexer_peek_next_char(lexer) == '=')
-        {
+        if (lexer_peek_next_char(lexer) == '=') {
             lexer_consume_char(lexer);
             return lexer_init_token(lexer, Token_Type_Greater_Or_Equals);
         }
-        else
-        {
+        else {
             return lexer_init_token(lexer, (int)'>');
         }
     }
     case '<': {
-        if (lexer_peek_next_char(lexer) == '=')
-        {
+        if (lexer_peek_next_char(lexer) == '=') {
             lexer_consume_char(lexer);
             return lexer_init_token(lexer, Token_Type_Less_Or_Equals);
         }
-        else
-        {
+        else {
             return lexer_init_token(lexer, (int)'<');
         }
     }
@@ -138,8 +135,7 @@ Token lexer_next_token(Lexer *lexer) {
         }
     }
     case '=': {
-        if (lexer_peek_next_char(lexer) == '=')
-        {
+        if (lexer_peek_next_char(lexer) == '=') {
             lexer_consume_char(lexer);
             return lexer_init_token(lexer, Token_Type_Equals_Equals);
         }
@@ -154,6 +150,12 @@ Token lexer_next_token(Lexer *lexer) {
         else
             return lexer_init_token(lexer, (int) ':');
     }
+    case '.': {
+        if (lexer_peek_next_char(lexer) == '.') {
+            lexer_consume_char(lexer);
+            return lexer_init_token(lexer, Token_Type_Dot_Dot);
+        }
+    }
 
     default:
         if (prev_char == '\"')
@@ -163,7 +165,6 @@ Token lexer_next_token(Lexer *lexer) {
             return lexer_create_digit_token(lexer);
 
         return lexer_create_identifier_token(lexer);
-        //  return lexer_init_token(lexer, Token_Type_Illegal);
     }
 }
 
@@ -274,12 +275,24 @@ Token lexer_create_identifier_token(Lexer* lexer) {
     // Get the type of the identifier
     switch (lexer->text[lexer->token_start_idx]) {
         case 't': return lexer_match_keyword(lexer, 1, "rue",  3, Token_Type_True );
-        case 'f': return lexer_match_keyword(lexer, 1, "alse", 4, Token_Type_False);
         case 'a': return lexer_match_keyword(lexer, 1, "nd",   2, Token_Type_And  );
         case 'o': return lexer_match_keyword(lexer, 1, "r",    1, Token_Type_Or   );
         case 'p': return lexer_match_keyword(lexer, 1, "rint", 4, Token_Type_Print);
         case 'e': return lexer_match_keyword(lexer, 1, "lse",  3, Token_Type_Else );
-        case 'i': return lexer_match_keyword(lexer, 1, "f",    1, Token_Type_If   );
+        case 'i': {
+            if (lexer->text[lexer->token_start_idx + 1] == 'f')
+                return lexer_match_keyword(lexer, 2, "", 0, Token_Type_If);
+
+            if (lexer->text[lexer->token_start_idx + 1] == 'n')
+                return lexer_match_keyword(lexer, 2, "", 0, Token_Type_In);
+        }
+        case 'f': {
+            if (lexer->text[lexer->token_start_idx + 1] == 'a')
+                return lexer_match_keyword(lexer, 2, "lse", 3, Token_Type_False);
+            
+            if (lexer->text[lexer->token_start_idx + 1] == 'o')
+                return lexer_match_keyword(lexer, 2, "r", 1, Token_Type_For);
+        }
         default : return lexer_init_token(lexer, Token_Type_Identifier); 
     }
 }

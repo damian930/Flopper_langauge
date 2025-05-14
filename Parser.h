@@ -23,6 +23,8 @@ typedef struct Stmt_var_decl_auto  Stmt_var_decl_auto;
 typedef struct Stmt_scope          Stmt_scope;
 typedef struct Tuple__expr_scope   Tuple__expr_scope; 
 typedef struct Stmt_if             Stmt_if;
+typedef struct For_loop_range      For_loop_range;
+typedef struct Stmt_for_loop       Stmt_for_loop;       
 // ==================================
 
 // ==================================
@@ -97,6 +99,7 @@ enum Stmt_type {
     Stmt_type_declaration_auto,
     Stmt_type_scope,
     Stmt_type_if,
+    Stmt_type_for_loop,
 };
 
 struct Stmt_expr {
@@ -127,7 +130,7 @@ struct Tuple__expr_scope {
     Expr*      expr;
     Stmt*      scope;
 };
-// void tuple__expr_scope_delete(Tuple__expr_scope* tuple);
+// Deletion should be done manually 
 // ======================================
 
 // TODO: maybe rename the scope to statements, since scope is a statement also
@@ -142,6 +145,20 @@ struct Stmt_if {
 };
 // TODO: dont forget to then delete these dynamic statements
 
+// == Structured needed for Stmt_for_loop to work
+// struct For_loop_range {
+//     s32 start;
+//     s32 end;
+//     s32 increment;
+// };
+// // ======================================
+
+// struct Stmt_for_loop {
+//     For_loop_range range;
+//     Stmt_scope     scope;
+//     Token     identifier;
+// };
+
 struct Stmt {
     Stmt_type type;
     union {
@@ -151,6 +168,7 @@ struct Stmt {
         Stmt_var_decl_auto var_decl_auto;
         Stmt_scope         scope;
         Stmt_if            if_else;
+        //Stmt_for_loop      for_loop;
     } union_;
 };
 
@@ -159,6 +177,8 @@ Stmt expression_stmt     (Lexer* lexer);
 Stmt statement           (Lexer* lexer);
 Stmt var_declaration_auto(Lexer* lexer);
 Stmt var_declaration     (Lexer* lexer);
+Stmt if_condition        (Lexer* lexer);
+Stmt for_loop            (Lexer* lexer);
 Stmt declaration         (Lexer* lexer);
 Stmt program             (Lexer* lexer);
 

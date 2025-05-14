@@ -8,10 +8,13 @@ typedef struct Array      Array;
 enum Array_type {
     Array_type_int,
     Array_type_stmt,
-    Array_type_tuple__hash_variable,
+    Array_type_tuple__hash_variable, // TODO: remove later, after shagine Scope logics
     Array_type_variable,
     Array_type_map_variables,  // For variable scoping inside Language
     Array_type_tuple__expr_score,
+
+    Array_type_tuple_string_evaluation,
+    Array_type_language_scope,
 };
 int array_get_size_of_arr_type(Array_type type);
 

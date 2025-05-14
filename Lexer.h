@@ -26,6 +26,8 @@ enum Token_Type {
     Token_Type_And,
     Token_Type_Or,
 
+    Token_Type_Print,
+
     Token_Type_Identifier,
 
     Token_Type_If,
@@ -33,9 +35,10 @@ enum Token_Type {
 
     Token_Type_Declaration_Auto,
 
-    Token_Type_Print,
+    Token_Type_For,
+    Token_Type_In,
+    Token_Type_Dot_Dot,
 
-    // Token_Type_Illegal, 
     Token_Type_EOF
 };
 
@@ -85,7 +88,7 @@ Token lexer_create_digit_token     (Lexer *lexer);
 Token lexer_create_identifier_token(Lexer* lexer);
 Token lexer_match_keyword          (Lexer* lexer, u32 current_token_offset, const char* rest, u32 rest_len, Token_Type type_to_match);
 bool  lexer_skip_whitespaces       (Lexer *lexer);
-bool  lexer_skip_comments           (Lexer* lexer);
+bool  lexer_skip_comments          (Lexer* lexer);
 
 Token token_init(Token_Type type, char *lexeme, u32 length, u32 col, u32 row);
 void token_print(Token *token);

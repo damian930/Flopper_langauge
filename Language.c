@@ -4,132 +4,255 @@
 // ================================================================================
 // == Hash map for variables (name -> value)
 
-Map_variables map_variables_init() {
-    return (Map_variables) {
-        .hash_variable_tuples = array_init(Array_type_tuple__hash_variable),
-    };
-}
+// Map_variables map_variables_init() {
+//     return (Map_variables) {
+//         .hash_variable_tuples = array_init(Array_type_tuple__hash_variable),
+//     };
+// }
 
-void map_variables_delete(Map_variables* map) {
-    for (int i=0; i<map->hash_variable_tuples.length; ++i) {
-        Tuple__hash_variables* tuple = 
-            ((Tuple__hash_variables*) map->hash_variable_tuples.arr);
+// void map_variables_delete(Map_variables* map) {
+//     for (int i=0; i<map->hash_variable_tuples.length; ++i) {
+//         Tuple__hash_variables* tuple = 
+//             ((Tuple__hash_variables*) map->hash_variable_tuples.arr);
         
-            for (int j=0; j<tuple->variables.length; ++j) {
-                Variable* var = 
-                    ((Variable*) tuple->variables.arr);
+//             for (int j=0; j<tuple->variables.length; ++j) {
+//                 Variable* var = 
+//                     ((Variable*) tuple->variables.arr);
 
-                string_delete(&var->name);
-            }
-        array_delete(&tuple->variables);
-    }
+//                 string_delete(&var->name);
+//             }
+//         array_delete(&tuple->variables);
+//     }
 
-    array_delete(&map->hash_variable_tuples);
-}
+//     array_delete(&map->hash_variable_tuples);
+// }
 
 
-int map_variables_hash(String name) {
-    return name.length;
-}
+// int map_variables_hash(String name) {
+//     return name.length;
+// }
 
-// NOTE: If a variable is already in the map, it just adds a copy of it
-int map_variables_add(Map_variables* map, String name, Evaluation value) {
-    // Getting hash
-    int hash = map_variables_hash(name);
+// // NOTE: If a variable is already in the map, it just adds a copy of it
+// int map_variables_add(Map_variables* map, String name, Evaluation value) {
+//     // Getting hash
+//     int hash = map_variables_hash(name);
 
-    // Searching for the index of hash value
-    int tuple_idx_for_hash = -1;
-    for (int i=0; i<map->hash_variable_tuples.length; ++i) {
-        Tuple__hash_variables* tuple_arr = 
-            ((Tuple__hash_variables*) map->hash_variable_tuples.arr);
-        if (tuple_arr[i].hash == hash) {
-            tuple_idx_for_hash = i;
-            break;
-        }
-    }
+//     // Searching for the index of hash value
+//     int tuple_idx_for_hash = -1;
+//     for (int i=0; i<map->hash_variable_tuples.length; ++i) {
+//         Tuple__hash_variables* tuple_arr = 
+//             ((Tuple__hash_variables*) map->hash_variable_tuples.arr);
+//         if (tuple_arr[i].hash == hash) {
+//             tuple_idx_for_hash = i;
+//             break;
+//         }
+//     }
 
-    // Not found
-    if (tuple_idx_for_hash == -1) {
-        Tuple__hash_variables new_tuple = (Tuple__hash_variables) {
-            .hash      = hash,
-            .variables = array_init(Array_type_variable),
-        };
-        Variable new_var = (Variable) { .name = name, .value = value };
-        array_add(&new_tuple.variables, (void*) &new_var, Array_type_variable); 
+//     // Not found
+//     if (tuple_idx_for_hash == -1) {
+//         Tuple__hash_variables new_tuple = (Tuple__hash_variables) {
+//             .hash      = hash,
+//             .variables = array_init(Array_type_variable),
+//         };
+//         Variable new_var = (Variable) { .name = name, .value = value };
+//         array_add(&new_tuple.variables, (void*) &new_var, Array_type_variable); 
         
-        array_add(&map->hash_variable_tuples, (void*) &new_tuple, Array_type_tuple__hash_variable); 
+//         array_add(&map->hash_variable_tuples, (void*) &new_tuple, Array_type_tuple__hash_variable); 
 
-        return 0;
-    }
-    else { // Found
-        Tuple__hash_variables* tuple = 
-            ((Tuple__hash_variables*) map->hash_variable_tuples.arr) + tuple_idx_for_hash;
+//         return 0;
+//     }
+//     else { // Found
+//         Tuple__hash_variables* tuple = 
+//             ((Tuple__hash_variables*) map->hash_variable_tuples.arr) + tuple_idx_for_hash;
         
-        Variable new_var = (Variable) { .name = name, .value = value };
+//         Variable new_var = (Variable) { .name = name, .value = value };
 
-        // Check if the tuple arr doesn't alredy have the variable initialised
-        for (int i=0; i<tuple->variables.length; ++i) {
-            Variable temp = ((Variable*) tuple->variables.arr)[i];
-            if (string_equal_to_string(&temp.name, &new_var.name)) {
-                return -1;
-            }
-        }
+//         // Check if the tuple arr doesn't alredy have the variable initialised
+//         for (int i=0; i<tuple->variables.length; ++i) {
+//             Variable temp = ((Variable*) tuple->variables.arr)[i];
+//             if (string_equal_to_string(&temp.name, &new_var.name)) {
+//                 return -1;
+//             }
+//         }
 
-        array_add(&tuple->variables, (void*) &new_var, Array_type_variable); 
-        return 0;
-    }
+//         array_add(&tuple->variables, (void*) &new_var, Array_type_variable); 
+//         return 0;
+//     }
 
-    //printf("Current map varaibles: \n");
-    //for (int i=0; i<map->hash_variable_tuples.length; ++i) {
-    //    Tuple__hash_variables tuple =
-    //        ((Tuple__hash_variables*) map->hash_variable_tuples.arr)[i];
+// }
 
-    //    for (int j=0; j<tuple.variables.length; ++j) {
-    //        Variable var = ((Variable*)tuple.variables.arr)[j];
-    //        //printf("\tVariable: ");
-    //        //string_print(&var.name);
-    //        //printf("\n");
-    //    }
-    //}
+// int map_variable_remove(Map_variables* map, String name) {
+//     // Returns:
+//     //  0 --> if variable with provided name was found and deleted
+//     //  1 --> if variable with provided name was not fround
+ 
+//     int hash = map_variables_hash(name);
 
-}
+//     // Searching for the index of hash value
+//     int tuple_idx_for_hash = -1;
+//     for (int i=map->hash_variable_tuples.length-1; i>=0; --i) {
+//         Tuple__hash_variables* tuple_arr = 
+//             ((Tuple__hash_variables*) map->hash_variable_tuples.arr);
+//         if (tuple_arr[i].hash == hash) {
+//             tuple_idx_for_hash = i;
+//             break;
+//         }
+//     }
 
-// NOTE: returning a pointer to be able to send out NULL if the varaible is not found
-//       the behaviour is the handled by the caller
-Variable* map_variables_get(Map_variables* map, String name) {
-    int hash = map_variables_hash(name);
+//     if (tuple_idx_for_hash == -1)
+//         return 0;
+//     else {
+//         Tuple__hash_variables* tuple = 
+//             ((Tuple__hash_variables*) map->hash_variable_tuples.arr) + tuple_idx_for_hash;
 
-    int tuples_len = map->hash_variable_tuples.length;
-    Tuple__hash_variables* tuples = 
-            ((Tuple__hash_variables*) map->hash_variable_tuples.arr);
+//         int variable_idx   = -1;
+//         for (int i=0; i<tuple->variables.length; ++i) {
+//             Variable* variable = ((Variable*) tuple->variables.arr) + i;
+        
+//             if (string_equal_to_string(&name, &variable->name)) {
+//                 variable_idx = i;
+//             }
+//         }
+
+//         if (variable_idx == -1)
+//             return 0;     
+//         else {
+//             // Delete the variable with name
+//             if (tuple->variables.length == 1)
+//                 tuple->variables.length = 0;
+//             else if (tuple->variables.length - 1 == variable_idx) 
+//                 tuple->variables.length -= 1;
+//             else {
+//                 Variable* variable_arr = ((Variable*) tuple->variables.arr);
+                
+//                 // Swapping the variable with the last one and decresing length
+//                 Variable temp                             = variable_arr[tuple->variables.length - 1];
+//                 variable_arr[tuple->variables.length - 1] = variable_arr[variable_idx];
+//                 variable_arr[variable_idx]                = temp; 
+//             }
+//             return 1;   
+//         }   
+//     }
+// }
+
+// // NOTE: returning a pointer to be able to send out NULL if the varaible is not found
+// //       the behaviour is the handled by the caller
+// Variable* map_variables_get(Map_variables* map, String name) {
+//     int hash = map_variables_hash(name);
+
+//     int tuples_len = map->hash_variable_tuples.length;
+//     Tuple__hash_variables* tuples = 
+//             ((Tuple__hash_variables*) map->hash_variable_tuples.arr);
     
-    for (int i=0; i<tuples_len; ++i) {
-        int test_len = tuples->variables.length;
-        // TODO: it might be, that this is not initialised yet (variables inside tuple)
-        for (int i = 0; i < test_len; ++i) {
-            Variable test_var = ((Variable*) tuples->variables.arr)[i];
-            printf("test_var.name      : %s \n", test_var.name.str  );
-            printf("test_var.value.type: %d \n", test_var.value.type);
+//     for (int i=0; i<tuples_len; ++i) {
+//         int test_len = tuples->variables.length;
+//         // TODO: it might be, that this is not initialised yet (variables inside tuple)
+//         for (int i = 0; i < test_len; ++i) {
+//             Variable test_var = ((Variable*) tuples->variables.arr)[i];
+//             printf("test_var.name      : %s \n", test_var.name.str  );
+//             printf("test_var.value.type: %d \n", test_var.value.type);
+//         }
+
+
+//         if (tuples[i].hash == hash) {
+//             int variables_len   = tuples[i].variables.length; 
+//             Variable* variables = 
+//                 ((Variable*) tuples[i].variables.arr);
+            
+//             for (int j=0; j<variables_len; ++j) {
+//                 if (string_equal_to_string(&variables[j].name, &name)) {
+//                     return variables + j;
+//                 }
+//             }
+            
+//         } 
+//     }
+//     return NULL;
+//     // printf("Was trying to acces a value for an unexsistant variable. \n");
+//     // printf("Identifier: %s. \n", name.str);
+//     // exit(1);
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ================================================================================
+// Plan:
+//  Here will be thing representing a single scope for a language
+//  It will contain variables, and in the future enums and stuff.
+//  This way i will be able to nest scopes, like in swift and acces stuff from them. 
+//  Also using this struct i will be able to limit redefenitions in nested scopes.
+
+// TODO: First implement just using regular Array, switch to hash tables later for better retrival
+
+void tuple__string_evaluation_delete(Tuple__string_evaluation* tuple) {
+    string_delete(&tuple->str);
+}
+
+
+// ============ Scope 
+Evaluation* language_scope_get_value_for_varaible(Language_scope* scope, String name) {
+    Tuple__string_evaluation* variables_arr = ((Tuple__string_evaluation*) scope->variables.arr);
+
+    for (int i=0; i<scope->variables.length; ++i) {
+        bool are_equal = string_equal_to_string(&(variables_arr + i)->str, &name);  
+        if (are_equal) {
+            return &(variables_arr + i)->eval;
         }
-
-
-        if (tuples[i].hash == hash) {
-            int variables_len   = tuples[i].variables.length; 
-            Variable* variables = 
-                ((Variable*) tuples[i].variables.arr);
-            
-            for (int j=0; j<variables_len; ++j) {
-                if (string_equal_to_string(&variables[j].name, &name)) {
-                    return variables + j;
-                }
-            }
-            
-        } 
     }
     return NULL;
-    // printf("Was trying to acces a value for an unexsistant variable. \n");
-    // printf("Identifier: %s. \n", name.str);
-    // exit(1);
+}
+
+int language_scope_add_varaible(Language_scope* scope, Tuple__string_evaluation* new_var) {
+    int variable_arr_len = scope->variables.length;
+
+    // Checking if the array already has a variable with this name
+    if (language_scope_get_value_for_varaible(scope, new_var->str) != NULL) {
+        return -1;
+    }
+
+    // No redeclaration, success
+    array_add(&scope->variables, new_var, Array_type_tuple_string_evaluation); 
+    return 0;
+}
+
+void language_scope_delete(Language_scope* scope) {
+    for (int i=0; i<scope->variables.length; ++i) {
+        Tuple__string_evaluation* tuple = 
+            ((Tuple__string_evaluation*) scope->variables.arr) + i;
+        
+        string_delete(&tuple->str);
+    }
+    array_delete(&scope->variables);
 }
 
 
@@ -138,26 +261,32 @@ Variable* map_variables_get(Map_variables* map, String name) {
 
 Language language_init(const char* text) {
     Language language = {
-        .parser              = parser_init(text),
-        .variable_scopes_arr = array_init(Array_type_map_variables),
+        .parser = parser_init(text),
+        .scopes = array_init(Array_type_language_scope),
     };
+
     // NOTE: providing the language environment with a default scope 
-    Map_variables scope = map_variables_init();
-    array_add(&language.variable_scopes_arr, (void*) &scope, Array_type_map_variables);
+    Language_scope default_scope = {
+        .variables = array_init(Array_type_tuple_string_evaluation),
+    };
+    array_add(&language.scopes, (void*) &default_scope, Array_type_language_scope);
+
     return language;
 }
 
 void language_delete(Language* language) {
-    for (int i=0; i<language->variable_scopes_arr.length; ++i) {
-        Map_variables* scope_vars = ((Map_variables*) language->variable_scopes_arr.arr) + i; 
-        map_variables_delete(scope_vars);
+    for (int i=0; i<language->scopes.length; ++i) {
+        Language_scope* scope = ((Language_scope*) language->scopes.arr) + i;
+        language_scope_delete(&scope);
     }
-
-    array_delete(&language->variable_scopes_arr);
+    array_delete(&language->scopes);
+    parser_delete(&language->parser);
 }
 
 void language_execute(Language* language) {
     parser_parse(&language->parser); // Created statements
+
+    printf("\n\n");
 
     for (int i=0; i<language->parser.stmt_arr.length; ++i) {
         Stmt* stmt = ((Stmt*) language->parser.stmt_arr.arr) + i;
@@ -165,6 +294,10 @@ void language_execute(Language* language) {
     }
 
 }
+
+
+
+
 
 void language_execute_statement(Language* language, Stmt* stmt) {
     switch (stmt->type) {
@@ -188,10 +321,10 @@ void language_execute_statement(Language* language, Stmt* stmt) {
         }
 
         // NOTE: this handles var creating. 
-        //       it adds new variables to the last created scope.
+        //       it adds new variables to the last scope.
         //       there is always at least a single scope there.
         case Stmt_type_declaration: {
-            // TODO: why do i have a token here ef i create a string inside the primary var decalration thingy
+            // TODO: why do i have a token here if i create a string inside the primary var decalration thingy
             Token name_token           = stmt->union_.var_decl.var_name;
             Token specified_type_token = stmt->union_.var_decl.var_specified_type;
             
@@ -221,19 +354,19 @@ void language_execute_statement(Language* language, Stmt* stmt) {
             string_add_c_string(&type_as_str, specified_type_token.lexeme, specified_type_token.length);
             if (eval.type == Evaluation_type_absent) {
                 // When its absent, then its just not initialised, but the specified type stays
-                int x = 1;
+                int x = 1; // This is here to be able to see if the if was succesfull and it entered the scope when debugging
             }
             else if (
                 eval.type == Evaluation_type_integer && 
                 strcmp(type_as_str.str, "int") == 0
             ) {
-                int x = 1;
+                int x = 1; // Same here
             }
             else if (
                 eval.type == Evaluation_type_boolean && 
                 strcmp(type_as_str.str, "bool") == 0
             ) {
-                int x = 1;
+                int x = 1; // Same here
             }
             else {
                 printf("The specified type for variable %s and the type of the initialisation expression were not the same. \n", name_as_str.str);
@@ -241,14 +374,16 @@ void language_execute_statement(Language* language, Stmt* stmt) {
             }
             string_delete(&type_as_str);
             
-            // Adding to the last variable scope
-            int scope_length          = language->variable_scopes_arr.length;
-            int last_scope_idx        = (scope_length == 0 ? 0 : scope_length - 1);
-            Map_variables* last_scope = ((Map_variables*) language->variable_scopes_arr.arr) + last_scope_idx;
-            
-            // NOTE: language by default has at least 1 scope
-            int err = map_variables_add(last_scope, name_as_str, eval);
-            if (err == -1 ) {
+            // Adding to the last scope
+            int n_scopes = language->scopes.length;
+            Language_scope* last_scope = ((Language_scope*) language->scopes.arr) + (n_scopes - 1);
+
+            Tuple__string_evaluation new_var = {
+                .eval = eval,
+                .str  = name_as_str,
+            };
+            int err_code = language_scope_add_varaible(last_scope, &new_var);
+            if (err_code == -1) {
                 printf("Error: Redefenition of a variable '%s'.\n", name_as_str.str);
                 printf(
                     "       (Row_start, Col_start)__(Row_end, Col_end): (%d, %d)__(%d, %d)",
@@ -299,17 +434,17 @@ void language_execute_statement(Language* language, Stmt* stmt) {
                 eval = language_evaluate_expression(language, stmt->union_.var_decl_auto.init_expr);
             }
 
+            // Adding to the last scope
+            int n_scopes = language->scopes.length;
+            Language_scope* last_scope = ((Language_scope*) language->scopes.arr) + (n_scopes - 1);
 
-            
-            // Adding to the last variable scope
-            int scope_length          = language->variable_scopes_arr.length;
-            int last_scope_idx        = (scope_length == 0 ? 0 : scope_length - 1);
-            Map_variables* last_scope = ((Map_variables*) language->variable_scopes_arr.arr) + last_scope_idx;
-            
-            // NOTE: language by default has at least 1 scope
-            int err = map_variables_add(last_scope, name_as_str, eval);
-            if (err == -1 ) {
-               printf("Error: Redefenition of a variable '%s'.\n", name_as_str.str);
+            Tuple__string_evaluation new_var = {
+                .eval = eval,
+                .str  = name_as_str,
+            };
+            int err_code = language_scope_add_varaible(last_scope, &new_var);
+            if (err_code == -1) {
+                printf("Error: Redefenition of a variable '%s'.\n", name_as_str.str);
                 printf(
                     "       (Row_start, Col_start)__(Row_end, Col_end): (%d, %d)__(%d, %d)",
                     name_token.start_row_n, name_token.start_col_n,
@@ -335,12 +470,12 @@ void language_execute_statement(Language* language, Stmt* stmt) {
         //       scopes are created here and added to language scopes arr at the last position.
         //       then when the nested statements are executed, they will be handles by their own handlers.
         case Stmt_type_scope: {
-            // Creating new scope and placing it at the last position of lang scopes
-            Map_variables new_scope = map_variables_init();
-            array_add(&language->variable_scopes_arr, &new_scope, Array_type_map_variables); 
+            Language_scope new_scope = {
+                .variables = array_init(Array_type_tuple_string_evaluation),
+            };
+            array_add(&language->scopes, &new_scope, Array_type_language_scope);
 
             // Executing statements
-            //Array* stmt_arr = &stmt->union_.scope.statements;
             Array stmt_arr = stmt->union_.scope.statements;
             for (int i=0; i<stmt_arr.length; ++i) {
                 Stmt* scope_nested_stmt = ((Stmt*) stmt_arr.arr) + i;
@@ -348,11 +483,14 @@ void language_execute_statement(Language* language, Stmt* stmt) {
             }     
 
             // Removing new scope
-            map_variables_delete(&new_scope);           // This one here is a sticky one, TODO: write a better explanation for this here
-            language->variable_scopes_arr.length -= 1;
+            //  The new scope in the last one, so just freeing the memory for new_scope and lanaguge.arr.length - 1
+            language_scope_delete(&new_scope);
+            language->scopes.length -= 1;
+
+            // Asserting
             {
                 // TODO: maybe dont do it by hand
-                if (language->variable_scopes_arr.length < 1) {
+                if (language->scopes.length < 1) {
                     printf("BACK_END_ERROR: somehow the lang object is left with no scopes. \n");
                     printf("BACK_END_ERROR: Called by \"language_execute_statement(Language* language, Stmt* stmt)\" \n");
                     exit(1);
@@ -360,6 +498,7 @@ void language_execute_statement(Language* language, Stmt* stmt) {
             }
 
             break;
+
         }
 
         case Stmt_type_if: {
@@ -402,6 +541,60 @@ void language_execute_statement(Language* language, Stmt* stmt) {
             break;
         }
 
+        // case Stmt_type_for_loop: {
+        //     Stmt_for_loop for_loop = stmt->union_.for_loop;
+
+        //     Token identifier = for_loop.identifier;
+        //     int start = for_loop.range.start;
+        //     int end   = for_loop.range.end;
+        //     int incr  = for_loop.range.increment;
+            
+        //     // @Refactor: Hate this way of doing for loops
+        //     // Plan:
+        //     //      Create a iteration variable, add to to the last scope
+        //     //      When the loop is over, remove the iteration variable from the last scope 
+
+        //     // Creating iteration variable and adding to the last scope
+
+        //     while(start < end) {
+        //         Expr init_expr = {
+        //             .type = Expr_type_primary,
+        //             .union_.primary = (Primary) {
+        //                 .type = Token_Type_Integer,
+        //                 .union_.integer = start
+        //             }
+        //         };
+        //         Stmt iter_var_decl = {
+        //             .type = Stmt_type_declaration_auto,
+        //             .union_.var_decl_auto = (Stmt_var_decl_auto) {
+        //                 .init_expr  = &init_expr,
+        //                 .var_name   = identifier,
+        //             }
+        //         };
+        //         array_add(&for_loop.scope.statements, (void*) &iter_var_decl, Array_type_stmt);
+
+        //         Stmt stmt_to_execute = {
+        //             .type = Stmt_type_scope,
+        //             .union_.scope = for_loop.scope,
+        //         };
+
+        //         language_execute_statement(language, &stmt_to_execute);
+            
+        //         Map_variables* last_scope = 
+        //             ((Map_variables*) language->variable_scopes_arr.arr) + (language->variable_scopes_arr.length); // Dont know why no -1 to get the last element
+        //         String token_name_as_str = string_init("");
+        //         string_add_c_string(&token_name_as_str, identifier.lexeme, identifier.length);    
+                
+        //         int err_code = map_variable_remove(last_scope, token_name_as_str);
+        //         printf("ERRCODE --> %d \n", err_code);
+                
+        //         string_delete(&token_name_as_str);
+
+        //     }
+
+        //     break;
+        // }
+
         default: {
             printf("Was not able to execute a statement. Statement type is unsupported. \n");
             printf("\tStatement: ");
@@ -438,16 +631,13 @@ Evaluation language_evaluate_expression(Language* language, Expr* expr) {
                 String var_name = expr->union_.primary.union_.identifier;
 
                 // 1. Check the newest scope. If not then check the one before that. And so on
-                Array* scopes = &language->variable_scopes_arr;
-                for (int i=0; i<scopes->length; ++i) {
-                    Map_variables* scope = ((Map_variables*) scopes->arr) + i;
-                    Variable* var        = map_variables_get(scope, var_name);
+                for (int i=language->scopes.length - 1; i>=0; --i) {
+                    Language_scope* scope = ((Language_scope*) language->scopes.arr) + i;
                     
-                    if (var == NULL) { // Variable not found in the current scope
-                        // searching inside the next scope
+                    Evaluation* eval = language_scope_get_value_for_varaible(scope, var_name);
+                    if (eval != NULL) {
+                        return *eval;
                     }
-                    else 
-                        return var->value;
                 }
                 
                 printf("Was not able to evaluate a varaible with name %s. Variable is not existant. \n", var_name.str);
@@ -518,7 +708,7 @@ Evaluation language_evaluate_expression(Language* language, Expr* expr) {
         }
 
         case Expr_type_binary: {
-            Token_Type operator =  expr->union_.binary.operator.type;
+            Token_Type operator = expr->union_.binary.operator.type;
             Evaluation left     = language_evaluate_expression(language, expr->union_.binary.left);
             Evaluation right    = language_evaluate_expression(language, expr->union_.binary.right);
 
@@ -578,7 +768,7 @@ Evaluation language_evaluate_expression(Language* language, Expr* expr) {
                 }
                 case (int) '/': {
                     if (
-                        left.type  == Evaluation_type_integer &&
+                    left.type  == Evaluation_type_integer &&
                         right.type == Evaluation_type_integer
                     ) {
                         

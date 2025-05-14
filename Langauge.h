@@ -4,29 +4,51 @@
 #include "my_String.h"
 
 // ================================================================================
-typedef struct Variable Variable;
-typedef struct Tuple__hash_variables Tuple__hash_variables;
-typedef struct Map_variables Map_variables;
+// typedef struct Variable Variable;
+// typedef struct Tuple__hash_variables Tuple__hash_variables;
+// typedef struct Map_variables Map_variables;
 
-struct Variable {
-    String     name;
-    Evaluation value;
+// struct Variable {
+//     String     name;
+//     Evaluation value;
+// };
+
+// struct Tuple__hash_variables {
+//     int hash;
+//     Array variables;
+// };
+
+// struct Map_variables {
+//     Array hash_variable_tuples;
+// };
+// Map_variables map_variables_init();
+// void map_variables_delete(Map_variables* map);
+
+// int       map_variables_hash (String name);
+// int       map_variables_add  (Map_variables* map, String name, Evaluation value);
+// int       map_variable_remove(Map_variables* map, String name);
+// Variable* map_variables_get  (Map_variables* map, String name);
+
+
+// ================================================================================
+
+typedef struct Tuple__string_evaluation Tuple__string_evaluation;
+typedef struct Language_scope Language_scope;
+
+struct Tuple__string_evaluation {
+    String     str;
+    Evaluation eval;
 };
+void tuple__string_evaluation_delete(Tuple__string_evaluation* tuple);
 
-struct Tuple__hash_variables {
-    int hash;
-    Array variables;
+
+struct Language_scope {
+    Array variables; // Array of Tuple__string_evaluations
 };
-
-struct Map_variables {
-    Array hash_variable_tuples;
-};
-Map_variables map_variables_init();
-void map_variables_delete(Map_variables* map);
-
-int       map_variables_hash(String name);
-int       map_variables_add (Map_variables* map, String name, Evaluation value);
-Variable* map_variables_get (Map_variables* map, String name);
+// Also with this i will e able to then using enum specify what purpose i am addit it for
+Evaluation* language_scope_get_value_for_varaible(Language_scope* scope, String name);
+int         language_scope_add_varaible(Language_scope* scope, Tuple__string_evaluation* new_var);
+void        language_scope_delete(Language_scope* scope);
 
 
 // ================================================================================
@@ -34,7 +56,8 @@ typedef struct Language Language;
 
 struct Language {
     Parser parser;
-    Array  variable_scopes_arr; // NOTE: this is an arry of Map_variables
+    Array  scopes; // Array of Language_scopes
+    // Array  variable_scopes_arr; // NOTE: this is an arry of Map_variables
 };
 Language language_init   (const char* text);
 void     language_delete (Language* language);
