@@ -23,6 +23,9 @@ enum Token_Type {
     Token_Type_True,
     Token_Type_False,
 
+    Token_Type_Int_Type,
+    Token_Type_Bool_type,
+
     Token_Type_And,
     Token_Type_Or,
 
@@ -39,7 +42,11 @@ enum Token_Type {
     Token_Type_In,
     Token_Type_Dot_Dot,
 
+    Token_Type_Colon_Colon,
+
     Token_Type_While,
+
+    Token_Type_Function_For_Parser, // Delete this shit later
 
     Token_Type_EOF
 };

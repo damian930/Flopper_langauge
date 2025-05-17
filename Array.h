@@ -15,6 +15,12 @@ enum Array_type {
 
     Array_type_tuple_string_evaluation,
     Array_type_language_scope,
+
+    Array_type_token,
+    Array_type_expr_p,
+
+    Array_type_stmt_func_decl, 
+
 };
 int array_get_size_of_arr_type(Array_type type);
 

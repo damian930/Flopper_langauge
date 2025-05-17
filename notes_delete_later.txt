@@ -1,0 +1,21 @@
+How to create functions
+ -- Functiona need to have variable to store. 
+        Arg list specifies the types. 
+        I need to store the var names and types.
+ -- Need a function name
+ -- Need a body, the body i can just store as a scope. 
+        Bu then when exedcuting a will be adding the variables set 
+        by user to the scope manually. 
+ -- I will then need to have a statemnet for func creating, 
+        and also an expession for a func call, so they have different executions. 
+
+
+
+
+
+
+
+
+
+
+

@@ -3,35 +3,6 @@
 #include "Array.h"
 #include "my_String.h"
 
-// ================================================================================
-// typedef struct Variable Variable;
-// typedef struct Tuple__hash_variables Tuple__hash_variables;
-// typedef struct Map_variables Map_variables;
-
-// struct Variable {
-//     String     name;
-//     Evaluation value;
-// };
-
-// struct Tuple__hash_variables {
-//     int hash;
-//     Array variables;
-// };
-
-// struct Map_variables {
-//     Array hash_variable_tuples;
-// };
-// Map_variables map_variables_init();
-// void map_variables_delete(Map_variables* map);
-
-// int       map_variables_hash (String name);
-// int       map_variables_add  (Map_variables* map, String name, Evaluation value);
-// int       map_variable_remove(Map_variables* map, String name);
-// Variable* map_variables_get  (Map_variables* map, String name);
-
-
-// ================================================================================
-
 typedef struct Tuple__string_evaluation Tuple__string_evaluation;
 typedef struct Language_scope Language_scope;
 
@@ -44,11 +15,13 @@ void tuple__string_evaluation_delete(Tuple__string_evaluation* tuple);
 
 struct Language_scope {
     Array variables; // Array of Tuple__string_evaluations
+    Array functions; // Array of Stmt_func_decl represented as Stmt_func_decl
 };
 // Also with this i will e able to then using enum specify what purpose i am addit it for
-Evaluation* language_scope_get_value_for_varaible(Language_scope* scope, String name);
-int         language_scope_add_varaible(Language_scope* scope, Tuple__string_evaluation* new_var);
-void        language_scope_delete(Language_scope* scope);
+Evaluation*     language_scope_get_value_for_varaible(Language_scope* scope, String name);
+Stmt_func_decl* language_scope_get_func_decl_for_name(Language_scope* scope, String name);
+int             language_scope_add_varaible(Language_scope* scope, Tuple__string_evaluation* new_var);
+void            language_scope_delete(Language_scope* scope);
 
 
 // ================================================================================

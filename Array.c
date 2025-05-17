@@ -15,6 +15,12 @@ int array_get_size_of_arr_type(Array_type type) {
         case Array_type_tuple_string_evaluation: { return sizeof(Tuple__string_evaluation); }
         case Array_type_language_scope: { return sizeof(Language_scope); }
 
+        case Array_type_token: { return sizeof(Token); }
+        case Array_type_expr_p:  {return sizeof(Expr*);}
+
+        case Array_type_stmt_func_decl: {return sizeof(Stmt_func_decl);}
+
+
         default: {
             printf("Was not able to calculate the size of Array_type. Unsupported type. \n");
             exit(1);
@@ -126,6 +132,14 @@ void array_add(Array* arr, void* new_value, Array_type value_type) {
         case Array_type_tuple_string_evaluation: {
             Tuple__string_evaluation* scope = (Tuple__string_evaluation*) arr->arr;
             scope[arr->length]    = *((Tuple__string_evaluation*) new_value);
+            arr->length           += 1;
+
+            break;
+        }
+
+        case Array_type_token: {
+            Token* scope = (Token*) arr->arr;
+            scope[arr->length]    = *((Token*) new_value);
             arr->length           += 1;
 
             break;

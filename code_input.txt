@@ -1,18 +1,81 @@
 
+x1 := 5;
+x2 := 10;
+
+func_1 :: () {
+	x1 = 25;
+	print x1 + x2;
+}
+
+print x1;
+
+func_1();
+
+print x1;
 
 
 
 
 
-x := 10;
-
-for i in 1..=x {
-	x = x - 1;
-	print x;
-}  
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+	// Fibanacci
+
+	n     := 10;
+	fib_1 := 0;
+	fib_2 := 1;
+
+	for i in 1..=n {
+		if i == 1 {
+			print 0;
+		}
+		else if i == 2 {
+			print 1;
+		}
+		else {
+			new_val: int = fib_1 + fib_2;
+			
+			fib_1 = fib_2;
+			fib_2 = new_val;
+			
+			print new_val;
+		}
+	}
+*/
 
 
 

@@ -29,6 +29,24 @@ Evaluation* language_scope_get_value_for_varaible(Language_scope* scope, String 
     return NULL;
 }
 
+Stmt_func_decl* language_scope_get_func_decl_for_name(Language_scope* scope, String requested_name) {
+    Stmt_func_decl* funcs = ((Stmt_func_decl*) scope->functions.arr);
+
+    for (int i=0; i<scope->functions.length; ++i) {
+        String name_as_str = string_init("");
+        int test = (funcs + i)->name.length;
+        string_add_c_string(&name_as_str, (funcs + i)->name.lexeme, (funcs + i)->name.length);
+        bool are_equal = string_equal_to_string(&requested_name, &name_as_str);
+        string_delete(&name_as_str);
+        if (are_equal) {
+            return (funcs + i);
+        }
+    }
+
+
+    return NULL;
+}
+
 int language_scope_add_varaible(Language_scope* scope, Tuple__string_evaluation* new_var) {
     int variable_arr_len = scope->variables.length;
 
@@ -65,6 +83,7 @@ Language language_init(const char* text) {
     // NOTE: providing the language environment with a default scope 
     Language_scope default_scope = {
         .variables = array_init(Array_type_tuple_string_evaluation),
+        .functions = array_init(Array_type_stmt),
     };
     array_add(&language.scopes, (void*) &default_scope, Array_type_language_scope);
 
@@ -101,7 +120,10 @@ void language_execute_statement(Language* language, Stmt* stmt) {
         case Stmt_type_expr: {
             Expr* expr      = stmt->union_.stmt_expr.expr;
             Evaluation eval = language_evaluate_expression(language, expr);
-            evaluation_print(&eval);
+            if (eval.type == Evaluation_type_absent)
+                printf("Was trying to print absent value. \n");
+            else
+                evaluation_print(&eval);
 
             break;
         }
@@ -546,6 +568,15 @@ void language_execute_statement(Language* language, Stmt* stmt) {
             break;
         }
 
+        case Stmt_type_func_decl: {
+            // Adding the function to the array of funcs in the last scope of the lang
+            Language_scope* last_scope = ((Language_scope*) language->scopes.arr) + (language->scopes.length - 1);
+
+            array_add(&last_scope->functions, &stmt->union_.func_decl, Array_type_stmt);
+
+            break;
+        }
+
         default: {
             printf("Was not able to execute a statement. Statement type is unsupported. \n");
             printf("\tStatement: ");
@@ -593,6 +624,115 @@ Evaluation language_evaluate_expression(Language* language, Expr* expr) {
                 
                 printf("Was not able to evaluate a varaible with name %s. Variable is not existant. \n", var_name.str);
                 exit(1);
+            }
+
+            if (primary_type == Token_Type_Function_For_Parser) {
+                Func_call func_call = expr->union_.primary.union_.func_call;
+
+                String func_call_name_as_str = string_init(""); // TODO: delete later
+                string_add_c_string(&func_call_name_as_str, func_call.name.lexeme, func_call.name.length);
+
+                // Get a function with name from lang
+                Stmt_func_decl* func_decl = NULL;
+                for (int i=language->scopes.length - 1; i>=0; --i) {
+                    Language_scope* scope = ((Language_scope*) language->scopes.arr) + i;
+                    
+                    func_decl = language_scope_get_func_decl_for_name(scope, func_call_name_as_str);
+                    
+                    if (func_decl != NULL)  
+                        break;
+                    // Get a function with name from the scope
+                }
+                if (func_decl == NULL) {
+                    printf("Was not able to evaluate a function call, casue the dunction called '%s' doesnt exist. \n", func_call_name_as_str.str);
+                    exit(1);
+                }
+
+                // Working with the declaration
+                // Plan: 1. Check if all the argumets comform to their specified types
+
+                // TODO: make the scope have 2 list for arg names and second for arg types
+
+                // 1.
+                Array arg_names_as_tokens = func_decl->arg_names_as_tokens;
+                Array arg_types_as_tokens = func_decl->arg_types_as_tokens;
+                
+                Evaluation* args_evals = malloc(sizeof(Evaluation) * func_call.args_as_expr_p.length);
+                if (args_evals == NULL) {
+                    printf("Not enought memory. \n");
+                    exit(1);
+                }
+
+                if (arg_names_as_tokens.length != arg_types_as_tokens.length && arg_names_as_tokens.length != func_call.args_as_expr_p.length) 
+                    exit(1);
+
+                for (int i=0; i<arg_names_as_tokens.length; ++i) {
+                    Expr* arg_expr = ((Expr*) func_call.args_as_expr_p.arr) + i;
+                    Evaluation arg_eval = language_evaluate_expression(language, arg_expr);
+                    args_evals[i] = arg_eval;
+
+                    Token* arp_type_token = ((Token*) arg_types_as_tokens.arr) + i;
+
+                    // Checking types here
+                    if (arg_eval.type == Evaluation_type_integer && arp_type_token->type == Token_Type_Int_Type) {
+
+                    }
+                    else if (arg_eval.type == Evaluation_type_boolean && arp_type_token->type == Token_Type_Bool_type) {
+
+                    }
+                    else {
+                        printf("Function passed in value dpnt confor to the function frclaration arg types. \n");
+                        exit(1);
+                    }
+
+                }
+                
+                // Now that we cheked the types, 
+                //  we create a new scope 
+                //  and then will add varaibles and statements to it and them manuallly execute it
+
+                // New scope 
+                Language_scope new_scope = {
+                    .functions = array_init(Array_type_stmt_func_decl),
+                    .variables = array_init(Array_type_tuple_string_evaluation),
+                };
+
+                // Setting up the scope --> adding variables
+                for (int i=0; i<arg_names_as_tokens.length; ++i) {
+                    Token*     var_name = ((Token*) arg_names_as_tokens.arr) + i;
+                    Evaluation var_eval = args_evals[i];
+
+                    String var_name_as_str = string_init("");
+                    string_add_c_string(&var_assignment, var_name->lexeme, var_name->length);
+                    
+                    Tuple__string_evaluation new_var = {.str = var_name_as_str, .eval = var_eval};
+                    array_add(&new_scope.variables, &new_var, Array_type_tuple_string_evaluation);
+                }
+
+                array_add(&language->scopes, &new_scope, Array_type_language_scope); 
+                
+                // Executin the function block
+                for (int i=0; i<func_decl->scope.statements.length; ++i) {
+                    Stmt* stmt = ((Stmt*) func_decl->scope.statements.arr) + i;
+                    language_execute_statement(language, stmt);
+                }
+
+                // Clearing out the new scope created for this function
+                language_scope_delete(&new_scope);
+                language->scopes.length -= 1;
+
+                return (Evaluation) {.type = Evaluation_type_absent, .union_.integer = 0};
+
+                break;
+
+
+
+                // If all the types are fine, we create varaible and store them
+                // Execute the scope manuallt again, add varaibles to it, and also execute it, then delete the scope
+
+
+
+
             }
 
             break;

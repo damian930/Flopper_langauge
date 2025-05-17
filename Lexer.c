@@ -147,6 +147,10 @@ Token lexer_next_token(Lexer *lexer) {
             lexer_consume_char(lexer);
             return lexer_init_token(lexer, Token_Type_Declaration_Auto);
         }
+        else if (lexer_peek_next_char(lexer) == (int) ':') {
+            lexer_consume_char(lexer);
+            return lexer_init_token(lexer, Token_Type_Colon_Colon);
+        }
         else
             return lexer_init_token(lexer, (int) ':');
     }
@@ -280,12 +284,18 @@ Token lexer_create_identifier_token(Lexer* lexer) {
         case 'p': return lexer_match_keyword(lexer, 1, "rint", 4, Token_Type_Print );
         case 'e': return lexer_match_keyword(lexer, 1, "lse",  3, Token_Type_Else  );
         case 'w': return lexer_match_keyword(lexer, 1, "hile", 4, Token_Type_While );
+        case 'b': return lexer_match_keyword(lexer, 1, "ool",  3, Token_Type_Bool_type);
         case 'i': {
             if (lexer->text[lexer->token_start_idx + 1] == 'f')
                 return lexer_match_keyword(lexer, 2, "", 0, Token_Type_If);
 
-            if (lexer->text[lexer->token_start_idx + 1] == 'n')
-                return lexer_match_keyword(lexer, 2, "", 0, Token_Type_In);
+            if (lexer->text[lexer->token_start_idx + 1] == 'n') {
+                if (lexer->text[lexer->token_start_idx + 2] == 't')
+                    return lexer_init_token(lexer, Token_Type_Int_Type);
+
+                return lexer_init_token(lexer, Token_Type_In);
+            }
+
         }
         case 'f': {
             if (lexer->text[lexer->token_start_idx + 1] == 'a')

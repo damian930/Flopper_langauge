@@ -9,6 +9,7 @@ typedef enum Expr_type Expr_type;
 typedef struct Primary Primary;
 typedef struct Unary   Unary;
 typedef struct Binary  Binary;
+typedef struct Func_call Func_call;
 typedef struct Expr    Expr;
 typedef struct Var_const_decl    Var_const_decl;
 // ==================================
@@ -27,6 +28,7 @@ typedef struct For_loop_range       For_loop_range;
 typedef struct Stmt_for_loop        Stmt_for_loop;       
 typedef struct Stmt_while_loop      Stmt_while_loop;
 typedef struct Stmt_var_assignment  Stmt_var_assignment;
+typedef struct Stmt_func_decl       Stmt_func_decl;
 // ==================================
 
 // ==================================
@@ -47,12 +49,18 @@ enum Expr_type {
     Expr_type_binary,
 };
 
+struct Func_call {
+    Token name;
+    Array args_as_expr_p; // Array of epxrs pointers
+};
+
 struct Primary {
     Token_Type type;
     union {
         // NOTE: These are the supported default types for now
         int  integer;
         bool boolean;
+        Func_call func_call;
         // char* string;
 
         String identifier;
@@ -68,16 +76,18 @@ struct Binary {
     Token operator;
     Expr* left;
     Expr* right;
-} ;
+};
+
+
 
 struct Expr {
     Expr_type type;
     union {
-        Primary primary;
-        Unary   unary;
-        Binary  binary;
+        Primary   primary;
+        Unary     unary;
+        Binary    binary;
     } union_;
-} ;
+};
 
 Expr* primary   (Lexer* lexer);
 Expr* unary     (Lexer* lexer);
@@ -104,6 +114,7 @@ enum Stmt_type {
     Stmt_type_if,
     Stmt_type_for_loop,
     Stmt_type_while_loop,
+    Stmt_type_func_decl,
 };
 
 struct Stmt_expr {
@@ -174,6 +185,17 @@ struct Stmt_while_loop {
     Stmt* scope;    // Stmt_scope 
 };
 
+struct Stmt_func_decl {
+    Token name;
+    Stmt_scope scope;
+    Array arg_names_as_tokens;
+    Array arg_types_as_tokens;
+
+    // Array args_and_types_as_tokens;
+    // Array of var names and types
+    // i will need names to then create varibles. I need the types, so when i evaluate expression and pass them into the func exetions, i can see if those are valid types for the function. How do i store types
+};
+
 struct Stmt {
     Stmt_type type;
     union {
@@ -186,6 +208,7 @@ struct Stmt {
         Stmt_if             if_else;
         Stmt_for_loop       for_loop;
         Stmt_while_loop     while_loop;
+        Stmt_func_decl      func_decl;
     } union_;
 };
 
