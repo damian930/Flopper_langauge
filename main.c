@@ -4,11 +4,33 @@
 #include "my_String.h"
 #include "Array.h"
 #include "Langauge.h"
-#include "string.h"
+//#include "string.h"
 
 String read_file(const char* file_name);
 
+// Array_create_type(int, Int_array);
+// Array_init(int, Int_array, int_array_init);
+// Array_delete(Int_array, int_array_delete);
+// Array_add_by_value(int, Int_array, int_array_add_by_value);
+
+
+
 int main(int args, char *argv[]) {
+	// Int_array int_arr = int_array_init();
+	// int x = 4;
+	// int y = 5;
+	// int_array_add_by_value(&int_arr, &x);
+	// int_array_add_by_value(&int_arr, &y);
+	// for (int i = 0; i < int_arr.length; ++i)
+	// 	printf("%d --> ", int_arr.data[i]);
+
+	// int_array_delete(&int_arr);
+
+	// for (int i = 0; i < int_arr.length; ++i)
+	// 	printf("%d --> ", i);
+
+
+
 	String code      = read_file("code_input.txt");
 	Language flopper = language_init(code.str);
 	language_execute(&flopper);
@@ -23,12 +45,12 @@ int main(int args, char *argv[]) {
 
 	
 	
-	//String code = string_init(" { } ");
-	//Lexer lexer = lexer_init(code.str);
-	//while (lexer_peek_next_token(&lexer).type != Token_Type_EOF) {
-	//	Token token = lexer_next_token(&lexer);
-	//	token_print(&token);
-	//}
+	// String code = string_init("  int if ggg ");
+	// Lexer lexer = lexer_init(code.str);
+	// while (lexer_peek_next_token(&lexer).type != Token_Type_EOF) {
+	// 	Token token = lexer_next_token(&lexer);
+	// 	token_print(&token);
+	// }
 	
 	// if (args == 1) {
 	// 	String code      = read_file("code_input.txt");

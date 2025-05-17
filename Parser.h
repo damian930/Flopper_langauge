@@ -3,6 +3,9 @@
 #include "my_String.h"
 #include "Array.h"
 
+
+
+
 // ==================================
 typedef enum Expr_type Expr_type;
 
@@ -22,23 +25,26 @@ typedef struct Stmt_print           Stmt_print;
 typedef struct Stmt_var_decl        Stmt_var_decl; 
 typedef struct Stmt_var_decl_auto   Stmt_var_decl_auto;
 typedef struct Stmt_scope           Stmt_scope;
-typedef struct Tuple__expr_scope    Tuple__expr_scope; 
+typedef struct Tuple__expr_scope    Tuple__expr_scope;
 typedef struct Stmt_if              Stmt_if;
 typedef struct For_loop_range       For_loop_range;
 typedef struct Stmt_for_loop        Stmt_for_loop;       
 typedef struct Stmt_while_loop      Stmt_while_loop;
 typedef struct Stmt_var_assignment  Stmt_var_assignment;
-typedef struct Stmt_func_decl       Stmt_func_decl;
+//typedef struct Stmt_func_decl       Stmt_func_decl;
 // ==================================
 
 // ==================================
-typedef enum Evaluation_type Evaluation_type; 
-typedef struct Evaluation Evaluation; 
+typedef enum   Evaluation_type Evaluation_type; 
+typedef struct Evaluation      Evaluation; 
 // ==================================
 
 // ==================================
-typedef struct Parser     Parser;
+typedef struct Parser  Parser;
 // ==================================
+
+Array_create_type(Stmt, Stmt_array)
+Array_create_type(Tuple__expr_scope, Expr_scope_array)
 
 // ========================================================================================
 // == Expressions 
@@ -49,10 +55,10 @@ enum Expr_type {
     Expr_type_binary,
 };
 
-struct Func_call {
-    Token name;
-    Array args_as_expr_p; // Array of epxrs pointers
-};
+// struct Func_call {
+//     Token name;
+//     Array args_as_expr_p; // Array of epxrs pointers
+// };
 
 struct Primary {
     Token_Type type;
@@ -60,10 +66,11 @@ struct Primary {
         // NOTE: These are the supported default types for now
         int  integer;
         bool boolean;
-        Func_call func_call;
+        Token identifier;
+
+        //Func_call func_call;
         // char* string;
 
-        String identifier;
     } union_;
 };
 
@@ -97,7 +104,7 @@ Expr* comparison(Lexer* lexer);
 Expr* equality  (Lexer* lexer);
 Expr* expression(Lexer* lexer);
 
-void   epxr_delete   (Expr* expr);   
+void   expr_delete   (Expr* expr);   
 String expr_to_string(Expr* expr); // For debugging
 
 
@@ -114,7 +121,7 @@ enum Stmt_type {
     Stmt_type_if,
     Stmt_type_for_loop,
     Stmt_type_while_loop,
-    Stmt_type_func_decl,
+    //Stmt_type_func_decl,
 };
 
 struct Stmt_expr {
@@ -141,60 +148,65 @@ struct Stmt_var_assignment {
     Expr* assigment_expr;
 };
 
+
+
 struct Stmt_scope {
-    Array statements;
+    Stmt_array statements;
 };
+
 
 // == Structured needed for Stmt_if to work
 struct Tuple__expr_scope {
     Expr*      expr;
-    Stmt*      scope;
+    Stmt_scope scope;
 };
-// Deletion should be done manually 
-// ======================================
 
-// TODO: maybe rename the scope to statements, since scope is a statement also
+// Only after the struct is fully defined:
+//Array_create_type (Tuple__expr_scope, Expr_scope_array);
 
-// TODO: hate having Stmt inside Stmt_if as pointers. make the flow of statements way worse
+// ============================================================
+
 struct Stmt_if {
-    Expr* main_if_expr;
-    Stmt* main_if_scope;
+    Expr*      main_if_expr;
+    Stmt_scope main_if_scope;
 
-    Array expr_scope_tuples;     
-    Stmt* else_scope;        // Scope sctruct. It will have a zero length array of statements if not found
+    Expr_scope_array expr_scope_arr;     
+    
+    bool       is_else_set;
+    Stmt_scope else_scope;       
 };
-// TODO: dont forget to then delete these dynamic statements
 
-// == Structured needed for Stmt_for_loop to work
+
+// == Structures needed for Stmt_for_loop to work
 struct For_loop_range {
     Expr* start;
     Expr* end;
     Expr* increment;
     bool  include_end_value;
 };
-// ======================================
+// ============================================================
 
 struct Stmt_for_loop {
     For_loop_range range;
-    Stmt_scope     scope; // TODO: make this a regular STMT, storing it as Stmt_scope result in a lot of pain
+    Stmt_scope     scope; 
     Token     identifier;
 };
 
 struct Stmt_while_loop {
-    Expr* condition;
-    Stmt* scope;    // Stmt_scope 
+    Expr*  condition;
+    Stmt_scope scope;    
 };
 
-struct Stmt_func_decl {
-    Token name;
-    Stmt_scope scope;
-    Array arg_names_as_tokens;
-    Array arg_types_as_tokens;
+// struct Stmt_func_decl {
+//     Token name;
+//     Stmt_scope scope;
+//     Array arg_names_as_tokens;
+//     Array arg_types_as_tokens;
 
-    // Array args_and_types_as_tokens;
-    // Array of var names and types
-    // i will need names to then create varibles. I need the types, so when i evaluate expression and pass them into the func exetions, i can see if those are valid types for the function. How do i store types
-};
+//     // Array args_and_types_as_tokens;
+//     // Array of var names and types
+//     // i will need names to then create varibles. I need the types, so when i evaluate expression and pass them into the func exetions, i can see if those are valid types for the function. How do i store types
+// };
 
 struct Stmt {
     Stmt_type type;
@@ -208,7 +220,7 @@ struct Stmt {
         Stmt_if             if_else;
         Stmt_for_loop       for_loop;
         Stmt_while_loop     while_loop;
-        Stmt_func_decl      func_decl;
+        //Stmt_func_decl      func_decl;
     } union_;
 };
 
@@ -234,15 +246,15 @@ String stmt_to_string(Stmt* stmt); // For debugging
 typedef enum {
     Evaluation_type_integer,
     Evaluation_type_boolean,
-    Evaluation_type_absent,  // NOTE: absent return from variables hash map, 
-                             //       to then be handled at execution level.
+    Evaluation_type_absent
 } Evaluation_type;
 
 struct Evaluation {
     Evaluation_type type;
     union {
-        int  integer;
-        bool boolean;
+        int   integer;
+        bool  boolean;
+        Token identifier;
     } union_;
 };
 void evaluation_print(Evaluation* eval); // For debugging
@@ -252,20 +264,19 @@ void evaluation_print(Evaluation* eval); // For debugging
 // == Parser
 
 struct Parser {
-    Lexer lexer;
-    Array stmt_arr;
-    bool  had_error;
+    Lexer      lexer;
+    Stmt_array stmt_arr;
+    //bool       had_error; // Is not yet supported
 };
 
 Parser parser_init  (const char* text); // NOTE: create its own Lexer
 void   parser_parse (Parser* parser);
 void   parser_delete(Parser* parser);
 
+// void report_parsing_error()
 
+Stmt stmt_scope_to_stmt(Stmt_scope* scope);
 
+//typedef struct Stmt_array Stmt_array;
 
-
-
-
-
-
+//Array_create_type (Stmt, Stmt_array);

@@ -1,88 +1,54 @@
 #pragma once
-#include "stdio.h"
-#include "stdlib.h"
+#include <stdio.h>
+#include <stdlib.h>
 
-typedef enum   Array_type Array_type;
-typedef struct Array      Array;
+// Macro to create a dynamic array struct for a given data type
+#define Array_create_type(data_type, struct_name)     \
+typedef struct {                                       \
+    data_type* data;                                   \
+    int length;                                        \
+    int capacity;                                      \
+} struct_name;
 
-enum Array_type {
-    Array_type_int,
-    Array_type_stmt,
-    Array_type_tuple__hash_variable, // TODO: remove later, after shagine Scope logics
-    Array_type_variable,
-    Array_type_map_variables,  // For variable scoping inside Language
-    Array_type_tuple__expr_score,
+// Macro to initialize the dynamic array
+#define Array_init(data_type, struct_name, func_name)         \
+struct_name func_name() {                                     \
+    int length = 0;                                           \
+    int capacity = 20;                                        \
+    data_type* arr = malloc(capacity * sizeof(data_type));    \
+    if (arr == NULL) {                                        \
+        printf("Unable to allocate memory for array.\n");     \
+        exit(1);                                              \
+    }                                                         \
+    return (struct_name) {                                    \
+        .data = arr,                                          \
+        .length = length,                                     \
+        .capacity = capacity                                  \
+    };                                                        \
+}
 
-    Array_type_tuple_string_evaluation,
-    Array_type_language_scope,
+// Macro to free memory used by the array
+#define Array_delete(struct_name, func_name)          \
+void func_name(struct_name* arr) {                    \
+    free(arr->data);                                  \
+    arr->data = NULL;                                 \
+    arr->length = 0;                                  \
+    arr->capacity = 0;                                \
+}
 
-    Array_type_token,
-    Array_type_expr_p,
-
-    Array_type_stmt_func_decl, 
-
-};
-int array_get_size_of_arr_type(Array_type type);
-
-struct Array {  
-    Array_type type;
-    void* arr;
-    int   length;
-    int   capacity;
-};
-
-Array array_init (Array_type type);
-void array_delete(Array* arr);
-
-
-void array_add(Array* arr, void* value, Array_type value_type);
-
-
-// TODO: 
-// void array_print(Array* arr, )
-
-
-// == Debugging ==============================================================
-
-// Array arr = array_init(Array_type_int);
-// 	for (int i=0; i<=20; i++) {
-// 		array_add(&arr, (void*) &i, Array_type_int);
-// 	}
-
-// 	for (int i=0; i<=20; i++) {
-// 		printf("-- %d --", ((int*)arr.arr)[i]);
-// 	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// Macro to add a value to the array (by value, not pointer)
+#define Array_add_by_value(data_type, struct_name, func_name)          \
+void func_name(struct_name* arr, data_type new_value) {                \
+    if (arr->length == arr->capacity) {                                \
+        int new_capacity = arr->capacity * 2;                          \
+        data_type* new_mem = realloc(arr->data, new_capacity * sizeof(data_type)); \
+        if (new_mem == NULL) {                                         \
+            printf("Unable to allocate memory for resizing array.\n"); \
+            exit(1);                                                   \
+        }                                                              \
+        arr->data = new_mem;                                           \
+        arr->capacity = new_capacity;                                  \
+    }                                                                  \
+    arr->data[arr->length] = new_value;                                \
+    arr->length += 1;                                                  \
+}

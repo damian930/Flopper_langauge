@@ -48,6 +48,10 @@ char lexer_peek_next_char(Lexer *lexer) {
 }
 
 char lexer_peek_nth_char(Lexer* lexer, u32 n) {
+    if (n < 0) {
+        printf("BACK_END_ERROR: 'lexer_peek_nth_char' can't have n < 0, but n: %d was passed in. \n", n);
+        exit(1);
+    }
     if (lexer->current_idx + n < lexer->text_len) 
         return lexer->text[lexer->current_idx + n];
     else 
@@ -58,7 +62,6 @@ char lexer_consume_char(Lexer *lexer) {
     if (lexer_is_at_end(lexer))
         return '\0';
     else {
-        // Deal with row, col information for tokens
         char consumed_char  = lexer->text[lexer->current_idx];
         lexer->current_idx += 1;
 
@@ -85,95 +88,97 @@ Token lexer_next_token(Lexer *lexer) {
     lexer->token_start_col_n = lexer->token_end_col_n;
     char prev_char = lexer_consume_char(lexer);
 
-    switch (prev_char) 
-    {
-    case '\0':
-        return lexer_init_token(lexer, Token_Type_EOF);
-    case '(':
-        return lexer_init_token(lexer, (int)'(');
-    case ')':
-        return lexer_init_token(lexer, (int)')');
-    case '{':
-        return lexer_init_token(lexer, (int) '{');
-    case '}':
-        return lexer_init_token(lexer, (int) '}');
-    case '+':
-        return lexer_init_token(lexer, (int)'+');
-    case '-':
-        return lexer_init_token(lexer, (int)'-');
-    case '*':
-        return lexer_init_token(lexer, (int)'*');
-    case ';':
-        return lexer_init_token(lexer, (int) ';');
-    case '/':
-        return lexer_init_token(lexer, (int)'/');
-    case '>': {
-        if (lexer_peek_next_char(lexer) == '=') {
-            lexer_consume_char(lexer);
-            return lexer_init_token(lexer, Token_Type_Greater_Or_Equals);
+    switch (prev_char) {
+        case '\0':
+            return lexer_init_token(lexer, Token_Type_EOF);
+        case '(':
+            return lexer_init_token(lexer, (int)'(');
+        case ')':
+            return lexer_init_token(lexer, (int)')');
+        case '{':
+            return lexer_init_token(lexer, (int) '{');
+        case '}':
+            return lexer_init_token(lexer, (int) '}');
+        case '+':
+            return lexer_init_token(lexer, (int)'+');
+        case '-':
+            return lexer_init_token(lexer, (int)'-');
+        case '*':
+            return lexer_init_token(lexer, (int)'*');
+        case ';':
+            return lexer_init_token(lexer, (int) ';');
+        case '/':
+            return lexer_init_token(lexer, (int)'/');
+        case '>': {
+            if (lexer_peek_next_char(lexer) == '=') {
+                lexer_consume_char(lexer);
+                return lexer_init_token(lexer, Token_Type_Greater_Or_Equals);
+            }
+            else {
+                return lexer_init_token(lexer, (int)'>');
+            }
         }
-        else {
-            return lexer_init_token(lexer, (int)'>');
+        case '<': {
+            if (lexer_peek_next_char(lexer) == '=') {
+                lexer_consume_char(lexer);
+                return lexer_init_token(lexer, Token_Type_Less_Or_Equals);
+            }
+            else {
+                return lexer_init_token(lexer, (int)'<');
+            }
         }
-    }
-    case '<': {
-        if (lexer_peek_next_char(lexer) == '=') {
-            lexer_consume_char(lexer);
-            return lexer_init_token(lexer, Token_Type_Less_Or_Equals);
+        case '!': {
+            if (lexer_peek_next_char(lexer) == '=') {
+                lexer_consume_char(lexer);
+                return lexer_init_token(lexer, Token_Type_Not_Equals);
+            }
+            else {
+                return lexer_init_token(lexer, (int) '!');
+            }
         }
-        else {
-            return lexer_init_token(lexer, (int)'<');
+        case '=': {
+            if (lexer_peek_next_char(lexer) == '=') {
+                lexer_consume_char(lexer);
+                return lexer_init_token(lexer, Token_Type_Equals_Equals);
+            }
+            else
+                return lexer_init_token(lexer, (int) '=');
         }
-    }
-    case '!': {
-        if (lexer_peek_next_char(lexer) == '=') {
-            lexer_consume_char(lexer);
-            return lexer_init_token(lexer, Token_Type_Not_Equals);
+        case ':': {
+            if (lexer_peek_next_char(lexer) == (int) '=') {
+                lexer_consume_char(lexer);
+                return lexer_init_token(lexer, Token_Type_Declaration_Auto);
+            }
+            else if (lexer_peek_next_char(lexer) == (int) ':') {
+                lexer_consume_char(lexer);
+                return lexer_init_token(lexer, Token_Type_Colon_Colon);
+            }
+            else
+                return lexer_init_token(lexer, (int) ':');
         }
-        else {
-            return lexer_init_token(lexer, (int) '!');
+        case '.': {
+            if (lexer_peek_next_char(lexer) == '.') {
+                lexer_consume_char(lexer);
+                return lexer_init_token(lexer, Token_Type_Dot_Dot);
+            }
         }
-    }
-    case '=': {
-        if (lexer_peek_next_char(lexer) == '=') {
-            lexer_consume_char(lexer);
-            return lexer_init_token(lexer, Token_Type_Equals_Equals);
-        }
-        else
-            return lexer_init_token(lexer, (int) '=');
-    }
-    case ':': {
-        if (lexer_peek_next_char(lexer) == (int) '=') {
-            lexer_consume_char(lexer);
-            return lexer_init_token(lexer, Token_Type_Declaration_Auto);
-        }
-        else if (lexer_peek_next_char(lexer) == (int) ':') {
-            lexer_consume_char(lexer);
-            return lexer_init_token(lexer, Token_Type_Colon_Colon);
-        }
-        else
-            return lexer_init_token(lexer, (int) ':');
-    }
-    case '.': {
-        if (lexer_peek_next_char(lexer) == '.') {
-            lexer_consume_char(lexer);
-            return lexer_init_token(lexer, Token_Type_Dot_Dot);
-        }
-    }
 
-    default:
-        if (prev_char == '\"')
-            return lexer_create_string_token(lexer);
+        default: {
+            // Not yet supported
+            // if (prev_char == '\"')
+            //     return lexer_create_string_token(lexer);
 
-        if (isdigit(prev_char))
-            return lexer_create_digit_token(lexer);
+            // Tjust only does regular integers, with no byte length chcking
+            if (isdigit(prev_char))
+                return lexer_create_digit_token(lexer);
 
-        return lexer_create_identifier_token(lexer);
+            return lexer_create_identifier_token(lexer);
+        }
     }
 }
 
 Token lexer_peek_next_token(Lexer* lexer) {
-    // Only storing end values, since start are changed to end when token is created
+    // Only storing end values, since starts are changed to ends when a new token is created
     u32 token_start_idx = lexer->current_idx;
     u32 token_end_col_n = lexer->token_end_col_n;
     u32 token_end_row_n = lexer->token_end_row_n;
@@ -188,11 +193,18 @@ Token lexer_peek_next_token(Lexer* lexer) {
 }
 
 Token lexer_peek_nth_token(Lexer* lexer, u32 n) {
+    if (n <= 0) {
+        printf("BACK_END_ERROR: 'lexer_peek_nth_token' cant have n < 0, but n: %d was passed in. \n", n);
+        exit(1);
+    }
+
     // Only storing end values, since start are changed to end when token is created
     u32 token_start_idx = lexer->current_idx;
     u32 token_end_col_n = lexer->token_end_col_n;
     u32 token_end_row_n = lexer->token_end_row_n;
     
+    // TODO: implement this
+    //       Alredy created token via peeking should be stored into a Token buffer.
     Token token;
     for (int i=0; i<n; ++i)
         token = lexer_next_token(lexer);
@@ -225,21 +237,21 @@ Token lexer_consume_token__exits(Lexer* lexer, Token_Type expected_type, const c
     return token;
 }
 
-Token lexer_create_string_token(Lexer *lexer) {
-    while (lexer_peek_next_char(lexer) != '\"' && !lexer_is_at_end(lexer)) {
-        lexer_consume_char(lexer);
-    }
+// Token lexer_create_string_token(Lexer *lexer) {
+//     while (lexer_peek_next_char(lexer) != '\"' && !lexer_is_at_end(lexer)) {
+//         lexer_consume_char(lexer);
+//     }
 
-    // TODO: maybe change to match char
-    if (lexer->text[lexer->current_idx] == '\"') {
-        lexer_consume_char(lexer);
-        return lexer_init_token(lexer, Token_Type_String);
-    }
-    else {
-        printf("Was not able to parse a string, closing '\"' wasn't found. \n");
-        exit(1);
-    }
-}
+//     // TODO: maybe change to match char
+//     if (lexer->text[lexer->current_idx] == '\"') {
+//         lexer_consume_char(lexer);
+//         return lexer_init_token(lexer, Token_Type_String);
+//     }
+//     else {
+//         printf("Was not able to parse a string, closing '\"' wasn't found. \n");
+//         exit(1);
+//     }
+// }
 
 Token lexer_create_digit_token(Lexer *lexer) {
     // right now just to integers
@@ -284,18 +296,12 @@ Token lexer_create_identifier_token(Lexer* lexer) {
         case 'p': return lexer_match_keyword(lexer, 1, "rint", 4, Token_Type_Print );
         case 'e': return lexer_match_keyword(lexer, 1, "lse",  3, Token_Type_Else  );
         case 'w': return lexer_match_keyword(lexer, 1, "hile", 4, Token_Type_While );
-        case 'b': return lexer_match_keyword(lexer, 1, "ool",  3, Token_Type_Bool_type);
         case 'i': {
             if (lexer->text[lexer->token_start_idx + 1] == 'f')
                 return lexer_match_keyword(lexer, 2, "", 0, Token_Type_If);
 
-            if (lexer->text[lexer->token_start_idx + 1] == 'n') {
-                if (lexer->text[lexer->token_start_idx + 2] == 't')
-                    return lexer_init_token(lexer, Token_Type_Int_Type);
-
+            if (lexer->text[lexer->token_start_idx + 1] == 'n')
                 return lexer_init_token(lexer, Token_Type_In);
-            }
-
         }
         case 'f': {
             if (lexer->text[lexer->token_start_idx + 1] == 'a')
@@ -379,6 +385,8 @@ bool lexer_skip_comments(Lexer* lexer) {
     return false;
 }
 
+
+// TODO: delte lexer_skop_whitepsace, why do i do it here?
 Token lexer_init_token(Lexer *lexer, Token_Type type) {
     Token token = token_init(
         type, 
@@ -391,6 +399,7 @@ Token lexer_init_token(Lexer *lexer, Token_Type type) {
         lexer->token_end_row_n,
         lexer->token_end_col_n
     );
+
     // Manually skipping whitespaces here, so the next token is a legit token
     lexer_skip_whitespaces(lexer); 
     return token;

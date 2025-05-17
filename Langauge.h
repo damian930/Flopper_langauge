@@ -3,33 +3,39 @@
 #include "Array.h"
 #include "my_String.h"
 
-typedef struct Tuple__string_evaluation Tuple__string_evaluation;
+typedef struct Tuple__token_evaluation Tuple__token_evaluation;
 typedef struct Language_scope Language_scope;
 
-struct Tuple__string_evaluation {
-    String     str;
+struct Tuple__token_evaluation {
+    Token      token;
     Evaluation eval;
 };
-void tuple__string_evaluation_delete(Tuple__string_evaluation* tuple);
+
+Array_create_type (Tuple__token_evaluation, Token_evaluation_array);
+
 
 
 struct Language_scope {
-    Array variables; // Array of Tuple__string_evaluations
-    Array functions; // Array of Stmt_func_decl represented as Stmt_func_decl
+    Token_evaluation_array token_eval_arr;
+
+    // Array functions; // Array of Stmt_func_decl represented as Stmt_func_decl
 };
 // Also with this i will e able to then using enum specify what purpose i am addit it for
-Evaluation*     language_scope_get_value_for_varaible(Language_scope* scope, String name);
-Stmt_func_decl* language_scope_get_func_decl_for_name(Language_scope* scope, String name);
-int             language_scope_add_varaible(Language_scope* scope, Tuple__string_evaluation* new_var);
+Evaluation*     language_scope_get_value_for_varaible(Language_scope* scope, Token name);
+//Stmt_func_decl* language_scope_get_func_decl_for_name(Language_scope* scope, Token name);
+int             language_scope_add_variable(Language_scope* scope, Tuple__token_evaluation new_var);
 void            language_scope_delete(Language_scope* scope);
 
 
 // ================================================================================
 typedef struct Language Language;
 
+Array_create_type (Language_scope, language_scope_array);
+
+
 struct Language {
     Parser parser;
-    Array  scopes; // Array of Language_scopes
+    language_scope_array scopes_arr; // Array of Language_scopes
     // Array  variable_scopes_arr; // NOTE: this is an arry of Map_variables
 };
 Language language_init   (const char* text);
@@ -38,6 +44,25 @@ void     language_execute(Language* language);
 
 Evaluation language_evaluate_expression(Language* language, Expr* expr);
 void       language_execute_statement  (Language* language, Stmt* stmt);
+
+void language_execute_stmt_expr      (Language* language, Stmt_expr*           stmt);
+void language_execute_stmt_print     (Language* language, Stmt_print*          stmt);
+void language_execute_stmt_decl      (Language* language, Stmt_var_decl*       stmt);
+void language_execute_stmt_decl_auto (Language* language, Stmt_var_decl_auto*  stmt);
+void language_execute_stmt_assignment(Language* language, Stmt_var_assignment* stmt);
+void language_execute_stmt_scope     (Language* language, Stmt_scope*          stmt);
+void language_execute_stmt_if        (Language* language, Stmt_if*             stmt);
+void language_execute_stmt_for_loop  (Language* language, Stmt_for_loop*       stmt);
+void language_execute_stmt_while_loop(Language* language, Stmt_while_loop* stmt);
+
+Evaluation language_evaluate_expr_primary(Language* language, Primary* epxr);
+Evaluation language_evaluate_expr_unary  (Language* language, Unary*   epxr);
+Evaluation language_evaluate_expr_binary (Language* language, Binary*  epxr);
+
+
+
+
+
 
 
 

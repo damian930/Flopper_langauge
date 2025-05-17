@@ -17,6 +17,8 @@ void string_add_string        (String* str, String* other_str);
 bool string_equal_to_string   (String* str1, String* str2    );
 bool string_equal_to_c_string (String* str1, const char* str2);
 
+bool c_string_equal(const char* str1, int len1, const char* str2, int len2);
+
 void string_print      (String* str);
 void string_debug_print(String* str);
 

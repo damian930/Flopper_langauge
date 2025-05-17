@@ -18,35 +18,31 @@ enum Token_Type {
     Token_Type_Less_Or_Equals,
     
     // Value types for lexeme values
-    Token_Type_String = 256, // THIS IS NOT A REAL TYPE YET
-    Token_Type_Integer,
+    Token_Type_Integer = 256,
     Token_Type_True,
     Token_Type_False,
-
-    Token_Type_Int_Type,
-    Token_Type_Bool_type,
 
     Token_Type_And,
     Token_Type_Or,
 
     Token_Type_Print,
 
-    Token_Type_Identifier,
-
     Token_Type_If,
     Token_Type_Else,
-
+    
     Token_Type_Declaration_Auto,
-
+    
     Token_Type_For,
     Token_Type_In,
     Token_Type_Dot_Dot,
-
+    
     Token_Type_Colon_Colon,
-
+    
     Token_Type_While,
-
-    Token_Type_Function_For_Parser, // Delete this shit later
+    
+    Token_Type_Function_For_Parser, // TODO: Delete this shit later
+    
+    Token_Type_Identifier,
 
     Token_Type_EOF
 };
@@ -83,7 +79,6 @@ bool lexer_is_at_end     (Lexer *lexer);
 char lexer_peek_next_char(Lexer *lexer);
 char lexer_peek_nth_char (Lexer* lexer, u32 n);
 char lexer_consume_char  (Lexer *lexer);
-// bool lexer_match_char(Lexer* lexer);
 
 Token lexer_next_token     (Lexer *lexer);
 Token lexer_peek_next_token(Lexer* lexer);
@@ -92,13 +87,15 @@ bool  lexer_match_token    (Lexer* lexer, Token_Type expected_type);
 Token lexer_consume_token__exits(Lexer* lexer, Token_Type expected_type, const char* error_message);
 
 Token lexer_init_token             (Lexer *lexer, Token_Type type);
-Token lexer_create_string_token    (Lexer *lexer);
+//Token lexer_create_string_token    (Lexer *lexer);
 Token lexer_create_digit_token     (Lexer *lexer);
 Token lexer_create_identifier_token(Lexer* lexer);
 Token lexer_match_keyword          (Lexer* lexer, u32 current_token_offset, const char* rest, u32 rest_len, Token_Type type_to_match);
 bool  lexer_skip_whitespaces       (Lexer *lexer);
 bool  lexer_skip_comments          (Lexer* lexer);
 
-Token token_init(Token_Type type, char *lexeme, u32 length, u32 col, u32 row);
+// TODO: make this init better, it has to have both start and end of a token passed in
+Token token_init(Token_Type type, char *lexeme, u32 length, 
+                 u32 start_row_n, u32 start_col_n, u32 end_row_n, u32 end_col_n);
 void token_print(Token *token);
 

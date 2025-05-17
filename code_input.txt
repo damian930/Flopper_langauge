@@ -1,17 +1,26 @@
 
-x1 := 5;
-x2 := 10;
-
-func_1 :: () {
-	x1 = 25;
-	print x1 + x2;
+for i in 1..=5 {
+	print i * 10;
 }
 
-print x1;
 
-func_1();
+/*
+	x1 := 5;
+	x2 := 10;
 
-print x1;
+	func_1 :: () {
+		x1 = 25;
+		print x1 + x2;
+
+	}
+
+	print x1;
+
+	func_1();
+
+	print x1;
+
+*/
 
 
 
