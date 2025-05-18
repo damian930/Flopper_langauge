@@ -40,7 +40,7 @@ enum Token_Type {
     
     Token_Type_While,
     
-    Token_Type_Function_For_Parser, // TODO: Delete this shit later
+    Token_Type_Function_Call_For_Parser, // TODO: Delete this shit later
     
     Token_Type_Identifier,
 

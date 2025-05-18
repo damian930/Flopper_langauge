@@ -3,39 +3,38 @@
 #include "Array.h"
 #include "my_String.h"
 
-typedef struct Tuple__token_evaluation Tuple__token_evaluation;
-typedef struct Language_scope Language_scope;
+
+
+typedef struct Tuple__token_evaluation  Tuple__token_evaluation;
+typedef struct Language_scope           Language_scope;
+
+Array_create_type (Tuple__token_evaluation, Token_evaluation_array);
+Array_create_type (Stmt_func_decl, Stmt_func_decl_array);
+Array_create_type (Language_scope, Language_scope_array);
+
 
 struct Tuple__token_evaluation {
     Token      token;
     Evaluation eval;
 };
 
-Array_create_type (Tuple__token_evaluation, Token_evaluation_array);
-
-
 
 struct Language_scope {
     Token_evaluation_array token_eval_arr;
-
-    // Array functions; // Array of Stmt_func_decl represented as Stmt_func_decl
+    Stmt_func_decl_array   functions;                        // Array of Stmt_func_decl represented as Stmt_func_decl
 };
-// Also with this i will e able to then using enum specify what purpose i am addit it for
 Evaluation*     language_scope_get_value_for_varaible(Language_scope* scope, Token name);
 //Stmt_func_decl* language_scope_get_func_decl_for_name(Language_scope* scope, Token name);
-int             language_scope_add_variable(Language_scope* scope, Tuple__token_evaluation new_var);
+int             language_scope_add_varaible(Language_scope* scope, Tuple__token_evaluation new_var);
 void            language_scope_delete(Language_scope* scope);
 
 
 // ================================================================================
 typedef struct Language Language;
 
-Array_create_type (Language_scope, language_scope_array);
-
-
 struct Language {
     Parser parser;
-    language_scope_array scopes_arr; // Array of Language_scopes
+    Language_scope_array scopes_arr; // Array of Language_scopes
     // Array  variable_scopes_arr; // NOTE: this is an arry of Map_variables
 };
 Language language_init   (const char* text);

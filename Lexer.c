@@ -172,7 +172,10 @@ Token lexer_next_token(Lexer *lexer) {
             if (isdigit(prev_char))
                 return lexer_create_digit_token(lexer);
 
-            return lexer_create_identifier_token(lexer);
+            if (isalnum(prev_char) || prev_char == '_')
+                return lexer_create_identifier_token(lexer);
+
+            return lexer_init_token(lexer, (int) prev_char);
         }
     }
 }
@@ -194,7 +197,7 @@ Token lexer_peek_next_token(Lexer* lexer) {
 
 Token lexer_peek_nth_token(Lexer* lexer, u32 n) {
     if (n <= 0) {
-        printf("BACK_END_ERROR: 'lexer_peek_nth_token' cant have n < 0, but n: %d was passed in. \n", n);
+        printf("BACK_END_ERROR: 'lexer_peek_nth_token' cant have n <= 0, but n: %d was passed in. \n", n);
         exit(1);
     }
 
@@ -301,7 +304,7 @@ Token lexer_create_identifier_token(Lexer* lexer) {
                 return lexer_match_keyword(lexer, 2, "", 0, Token_Type_If);
 
             if (lexer->text[lexer->token_start_idx + 1] == 'n')
-                return lexer_init_token(lexer, Token_Type_In);
+                return lexer_match_keyword(lexer, 2, "", 0, Token_Type_In);
         }
         case 'f': {
             if (lexer->text[lexer->token_start_idx + 1] == 'a')

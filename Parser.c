@@ -4,15 +4,22 @@
 #include "Parser.h"
 #include "Lexer.h"
 #include "my_String.h"
-//#include "Array.h"
 
-Array_init(Tuple__expr_scope, Expr_scope_array, expr_scope_array_init);
-Array_delete(Expr_scope_array, expr_scope_array_delete);
+Array_init        (Tuple__expr_scope, Expr_scope_array, expr_scope_array_init);
+Array_delete      (Expr_scope_array, expr_scope_array_delete);
 Array_add_by_value(Tuple__expr_scope, Expr_scope_array, expr_scope_array_add_by_value);
 
-Array_init(Stmt, Stmt_array, stmt_array_init);
-Array_delete(Stmt_array, stmt_array_delete);
+Array_init        (Stmt, Stmt_array, stmt_array_init);
+Array_delete      (Stmt_array, stmt_array_delete);
 Array_add_by_value(Stmt, Stmt_array, stmt_array_add_by_value);
+
+Array_init        (Expr*, Expr_p_array, expr_p_array_init);
+Array_delete      (Expr_p_array, expr_p_array_delete);
+Array_add_by_value(Expr*, Expr_p_array, expr_p_array_add_by_value);
+
+Array_init        (Token, Token_array, token_array_init);
+Array_delete      (Token_array, token_array_delete);
+Array_add_by_value(Token, Token_array, token_array_add_by_value);
 
 // ========================================================================================
 // == Expression grammar below
@@ -67,49 +74,32 @@ Expr* primary(Lexer* lexer) {
         }
 
         case Token_Type_Identifier: {
-            primary = &(Primary) {
-                .type              = Token_Type_Identifier,
-                .union_.identifier = token,
-            };
+            // Function call
+            if (lexer_match_token(lexer, (int) '(')) {
+                Expr_p_array expr_arr = expr_p_array_init();
 
-            // // Funcion call 
-            // if (lexer_match_token(lexer, (int) '(')) {
-            //     Array args = array_init(Array_type_expr_p); 
-            //     if (lexer_match_token(lexer, (int) ')') == false) {
-            //         do {
-            //             Token token = lexer_next_token(lexer);
-            //             array_add(&args, &token, Array_type_token);
-            //         } while(lexer_match_token(lexer, (int)','));
-            //         lexer_match_token(lexer, (int) ')');
-            //     }
+                if (lexer_match_token(lexer, (int) ')') == false) {
+                    do {
+                        Expr* args_expr = expression(lexer);
+                        expr_p_array_add_by_value(&expr_arr, args_expr);
+                    } while(lexer_match_token(lexer, (int)','));
+                    lexer_match_token(lexer, (int) ')');
+                }
 
-            //     primary = &(Primary) {
-            //         .type = Token_Type_Function_For_Parser,
-            //         .union_.func_call = (Func_call) {
-            //             .name           = token,
-            //             .args_as_expr_p = args,
-            //         }
-            //     };
-            // }
-            // else {
-            //     // TODO: check if i even need malloc here. i kanda do, but if the lifetypes of the source code and this are the same and i am fine not allocating this.
-            //     char* name = malloc(sizeof(char) * token.length);
-            //     if (name == NULL) {
-            //         printf("Wasnt able to initialise a string due to lack of memory. \n");
-            //         exit(1);
-            //     }
-            //     for (int i=0; i<token.length; ++i) {
-            //         name[i] = token.lexeme[i];
-            //     }
-            //     String identifier = string_init("");
-            //     string_add_c_string(&identifier, name, token.length);
-            //     free(name);
-
-            //     primary = &(Primary) {
-            //         .type              = Token_Type_Identifier,
-            //         .union_.identifier = identifier,
-            //     };
-            // }
+                primary = &(Primary) {
+                    .type = Token_Type_Function_Call_For_Parser,
+                    .union_.func_call = (Func_call) {
+                        .name           = token,
+                        .args_as_expr_p = expr_arr,
+                    }
+                };
+            }
+            else { // Just a variable
+                primary = &(Primary) {
+                    .type              = Token_Type_Identifier,
+                    .union_.identifier = token,
+                };
+            }
 
             break;
         }
@@ -405,7 +395,7 @@ String expr_to_string(Expr* expr) {
                     return str;
                 }
                 
-                case Token_Type_Function_For_Parser: {
+                case Token_Type_Function_Call_For_Parser: {
                     string_add_whole_c_string(&str, "Function call \n");
 
                     return str;
@@ -790,46 +780,45 @@ Stmt while_loop(Lexer* lexer) {
 }
 
 
-// Stmt function_declaration(Lexer* lexer) {
-//     Token name = lexer_consume_token__exits(lexer, Token_Type_Identifier,  "Was expecting an identifier to start a function declaration. \n");
-//     Token _    = lexer_consume_token__exits(lexer, Token_Type_Colon_Colon, "Was expecting a '::' after function name in function declaration. \n");
-//     Token __   = lexer_consume_token__exits(lexer, (int) '(',              "Was expecting a '(' after function name and '::' to start a list of function arguments. \n");
+Stmt function_declaration(Lexer* lexer) {
+    Token name = lexer_consume_token__exits(lexer, Token_Type_Identifier,  "Was expecting an identifier to start a function declaration. \n");
+    Token _    = lexer_consume_token__exits(lexer, Token_Type_Colon_Colon, "Was expecting a '::' after function name in function declaration. \n");
+    Token __   = lexer_consume_token__exits(lexer, (int) '(',              "Was expecting a '(' after function name and '::' to start a list of function arguments. \n");
 
-//     Array arg_names = array_init(Array_type_token);
-//     Array arg_types = array_init(Array_type_token);
-//     if (lexer_peek_next_token(lexer).type != (int) ')') {
-//         do {
-//             Token var_name = lexer_consume_token__exits(lexer, Token_Type_Identifier, "Was expecting a variable name inside a function arguments declaration. \n");
-//             Token ___      = lexer_consume_token__exits(lexer, (int) ':',             "Was expecting ':' after varaible name to declare the type in function arguments declaration. \n");
-            
-//             Token var_type = lexer_consume_token__exits(lexer, Token_Type_Int_Type, "Was expecting a variable type int, other are not supported. \n");
+    Token_array arg_names = token_array_init();
+    Token_array arg_types = token_array_init();
+    if (lexer_peek_next_token(lexer).type != (int) ')') {
+        do {
+            Token var_name = lexer_consume_token__exits(lexer, Token_Type_Identifier, "Was expecting a variable name inside a function arguments declaration. \n");
+            Token ___      = lexer_consume_token__exits(lexer, (int) ':',             "Was expecting ':' after varaible name to declare the type in function arguments declaration. \n");
+            Token var_type = lexer_consume_token__exits(lexer, Token_Type_Identifier, "Was expecting a variable type int, other are not supported. \n");
 
-//             array_add(&arg_names, &var_name, Array_type_token);
-//             array_add(&arg_types, &var_type, Array_type_token);
+            token_array_add_by_value(&arg_names, var_name);
+            token_array_add_by_value(&arg_types, var_type);
 
-//         } while(lexer_match_token(lexer, (int) ','));
-//     }
-//     lexer_consume_token__exits(lexer, (int) ')', "Was expecting a closing ')' to after the list of function arguments. \n");
+        } while(lexer_match_token(lexer, (int) ','));
+    }
+    lexer_consume_token__exits(lexer, (int) ')', "Was expecting a closing ')' to after the list of function arguments. \n");
 
-//     if (arg_names.length != arg_types.length) {
-//         printf("BACK_END_ERROR: Somehow the length of arg names and types is not the same. \n");
-//         exit(1);
-//     }
+    if (arg_names.length != arg_types.length) {
+        printf("BACK_END_ERROR: Somehow the length of arg names and types is not the same. \n");
+        exit(1);
+    }
 
-//     // Need to cosume for the block() to work
-//     lexer_consume_token__exits(lexer, (int)'{', "Was expecting a starting '{' for function body. \n");
-//     Stmt_scope scope = block(lexer).union_.scope; // Might break, assert
+    // Need to cosume for the block() to work
+    lexer_consume_token__exits(lexer, (int)'{', "Was expecting a starting '{' for function body. \n");
+    Stmt_scope scope = block(lexer).union_.scope; // Might break, assert
 
-//     return (Stmt) {
-//         .type             = Stmt_type_func_decl,
-//         .union_.func_decl = (Stmt_func_decl) {
-//             .name  = name,
-//             .scope = scope, 
-//             .arg_names_as_tokens = arg_names,
-//             .arg_types_as_tokens = arg_types,
-//         }
-//     };
-// }
+    return (Stmt) {
+        .type             = Stmt_type_func_decl,
+        .union_.func_decl = (Stmt_func_decl) {
+            .name  = name,
+            .scope = scope, 
+            .arg_names_as_tokens = arg_names,
+            .arg_types_as_tokens = arg_types,
+        }
+    };
+}
 
 
 
@@ -863,13 +852,13 @@ Stmt declaration(Lexer* lexer) {
     else if (lexer_match_token(lexer, Token_Type_While)) {
         return while_loop(lexer);
     }
-    // else if (
-    //         lexer_peek_nth_token(lexer, 1).type == Token_Type_Identifier
-    //     &&  lexer_peek_nth_token(lexer, 2).type == Token_Type_Colon_Colon
-    //     &&  lexer_peek_nth_token(lexer, 3).type == (int) '('
-    // ) {
-    //     return function_declaration(lexer);
-    // }
+    else if (
+            lexer_peek_nth_token(lexer, 1).type == Token_Type_Identifier
+        &&  lexer_peek_nth_token(lexer, 2).type == Token_Type_Colon_Colon
+        &&  lexer_peek_nth_token(lexer, 3).type == (int) '('
+    ) {
+        return function_declaration(lexer);
+    }
 
     else 
         return statement(lexer);
@@ -977,18 +966,16 @@ void stmt_delete(Stmt* stmt) {
             break;
         }
 
-        // case Stmt_type_func_decl: {
-        //     printf("Need to be aable to delete a func delc bro.");
-        //         //array_delete(&stmt->union_.func_decl.argument_tokens);
+        case Stmt_type_func_decl: {
+            Stmt_scope* scope = &stmt->union_.func_decl.scope;
+            Stmt stmt         = stmt_scope_to_stmt(scope);
+            stmt_delete(&stmt);
 
-        //         //// TODO: this has to change, just store STMT inside for_loop_stmt
-        //         //Stmt temp = {
-        //         //    .type         = Stmt_type_scope,
-        //         //    .union_.scope = stmt->union_.func_decl.scope,
-        //         //};
-        //         //stmt_delete(&temp);
-        //        break;
-        // }
+            token_array_delete(&stmt.union_.func_decl.arg_names_as_tokens); 
+            token_array_delete(&stmt.union_.func_decl.arg_types_as_tokens); 
+
+            break;
+        }
 
         default: {
             printf("Was not able to delete a statement inside \"stmt_delete(Stmt* stmt)\", statement's type is not supported for deletion. \n");
@@ -1009,7 +996,7 @@ String stmt_to_string(Stmt* stmt) {
         case Stmt_type_if              : { return string_init("IF STMT");                                 }
         case Stmt_type_for_loop        : { return string_init("FOR LOOP");                                }
         case Stmt_type_while_loop      : { return string_init("WHILE LOOP");                              }
-        //case Stmt_type_func_decl       : { return string_init("DECLARED A FUNCTION");                     }                            
+        case Stmt_type_func_decl       : { return string_init("DECLARED A FUNCTION");                     }                            
         default: {
             printf("Was not able to create a string from a statement.");
             printf("Statement's type is not supported for string creation. \n");
@@ -1039,10 +1026,10 @@ void evaluation_print(Evaluation* eval) {
             break;
         }
 
-        // case Evaluation_type_absent: {
-        //     printf("Error, was trying to print an uninitialised varaible. \n");
-        //     exit(1);
-        // }
+         case Evaluation_type_absent: {
+            printf("NONE\n");
+            break;
+         }
 
         default: {
             printf("Got an unexpected evaluation type inside \"language_execute_stmt\". \n");

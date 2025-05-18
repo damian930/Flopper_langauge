@@ -45,7 +45,7 @@ int main(int args, char *argv[]) {
 
 	
 	
-	// String code = string_init("  int if ggg ");
+	// String code = string_init("  ,ff ");
 	// Lexer lexer = lexer_init(code.str);
 	// while (lexer_peek_next_token(&lexer).type != Token_Type_EOF) {
 	// 	Token token = lexer_next_token(&lexer);
